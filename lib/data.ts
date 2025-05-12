@@ -66,3 +66,55 @@ export async function getRecentActivities(limit = 5) {
     LIMIT ?
   `, limit);
 }
+
+// 获取财务统计摘要
+export async function getFinancialSummary() {
+
+  return Promise.all([
+    db.get<{ total: number }>(`SELECT SUM(amount) as total FROM expenses`),
+    db.get<{ total: number }>(`SELECT SUM(amount) as total FROM income`)
+  ]).then(([expenses, income]) => ({
+    totalExpenses: expenses?.total || 0,
+    totalIncome: income?.total || 0,
+    netProfit: (income?.total || 0) - (expenses?.total || 0)
+  }));
+}
+
+// 获取财务记录（带关联信息）
+export async function getFinancialRecords(
+  type: 'all' | 'income' | 'expense' = 'all'
+) {
+
+  return db.all(`
+    SELECT 
+      'expense' as type,
+      e.id,
+      e.amount,
+      e.created_at,
+      e.memo,
+      e.event_id,
+      pe.crop_name,
+      pe.event_type
+    FROM expenses e
+    LEFT JOIN planting_events pe ON e.event_id = pe.id
+    ${type === 'income' ? 'WHERE 1=0' : ''} -- 当筛选收入时排除支出记录
+    
+    UNION ALL
+    
+    SELECT 
+      'income' as type,
+      i.id,
+      i.amount,
+      i.created_at,
+      i.buyer as memo,
+      i.event_id,
+      pe.crop_name,
+      pe.event_type  
+    FROM income i
+    LEFT JOIN planting_events pe ON i.event_id = pe.id
+    ${type === 'expense' ? 'WHERE 1=0' : ''} -- 当筛选支出时排除收入记录
+    
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+}
