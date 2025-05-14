@@ -118,3 +118,60 @@ export async function getFinancialRecords(
     LIMIT 100
   `);
 }
+
+// 获取地块
+export async function getAllFields() {
+  return db.all<{ id: number; name: string }[]>(`
+    SELECT id, name FROM fields ORDER BY id DESC
+  `);
+}
+
+// 获取农事活动
+export async function getPlantingEventsWithFinance() {
+
+  return db.all(`
+    SELECT 
+      pe.id,
+      pe.field_id,
+      pe.event_type,
+      pe.crop_name,
+      pe.event_date,
+      pe.notes,
+      f.name as field_name,
+      COALESCE(SUM(e.amount), 0) as total_expense,
+      COALESCE(SUM(i.amount), 0) as total_income,
+      (COALESCE(SUM(i.amount), 0) - COALESCE(SUM(e.amount), 0)) as net_value
+    FROM planting_events pe
+    LEFT JOIN fields f ON pe.field_id = f.id
+    LEFT JOIN expenses e ON pe.id = e.event_id
+    LEFT JOIN income i ON pe.id = i.event_id
+    GROUP BY pe.id
+    ORDER BY pe.event_date DESC 
+  `);
+}
+
+// 获取所有地块以及当前农作物
+export async function getFieldsWithCurrentCrop() {
+
+  return db.all(`
+    SELECT 
+      f.id,
+      f.name,
+      f.area,
+      (SELECT crop_name 
+       FROM planting_events 
+       WHERE field_id = f.id 
+         AND event_type = '播种'
+         AND id > COALESCE(
+           (SELECT id 
+            FROM planting_events 
+            WHERE field_id = f.id 
+              AND event_type = '采收'
+            ORDER BY event_date DESC 
+            LIMIT 1), 0)
+       ORDER BY event_date DESC 
+       LIMIT 1) as current_crop
+    FROM fields f
+    ORDER BY f.created_at DESC
+  `);
+}
