@@ -14,7 +14,7 @@ export default async function FieldsPage() {
     ]);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-16">
+        <div className="h-full flex flex-col">
             <header className="bg-white p-4 shadow-sm">
                 <h1 className="text-2xl font-bold text-gray-800">农事活动</h1>
                 <p className="text-sm text-gray-500 mt-1">2024年5月20日</p>

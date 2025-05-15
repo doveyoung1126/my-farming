@@ -15,7 +15,7 @@ export default async function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* 头部 */}
       <header className="bg-white p-4 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-800">农田总览</h1>
@@ -62,44 +62,46 @@ export default async function Home() {
       </div>
 
       {/* 近期活动部分改造 */}
-      <div className="px-4 mt-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">近期活动</h2>
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div
-              key={`${activity.type}-${activity.id}`}
-              className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium text-gray-800">
-                    {activity.action}
-                    {activity.type === 'event' && ` · ${activity.subject}`}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {activity.type === 'income' && `买家：${activity.subject}`}
-                    {activity.type === 'expense' && activity.subject}
-                  </p>
-                </div>
-                <span className="text-sm text-gray-400">
-                  {formatDate(activity.timestamp)}
-                </span>
-              </div>
-
-              {/* 金额显示 */}
-              {activity.amount && (
-                <div className="mt-2 text-right">
-                  <span className={`${activity.type === 'income'
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                    }`}>
-                    {activity.type === 'income' ? '+' : '-'}
-                    ¥{activity.amount.toLocaleString()}
+      <div className="flex-1 min-h-0">
+        <div className="h-full flex flex-col px-4 mt-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">近期活动</h2>
+          <div className="flex-1 min-h-0 overflow-y-auto pb-30 space-y-4">
+            {activities.map((activity) => (
+              <div
+                key={`${activity.type}-${activity.id}`}
+                className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-800">
+                      {activity.action}
+                      {activity.type === 'event' && ` · ${activity.subject}`}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {activity.type === 'income' && `买家：${activity.subject}`}
+                      {activity.type === 'expense' && activity.subject}
+                    </p>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {formatDate(activity.timestamp)}
                   </span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* 金额显示 */}
+                {activity.amount && (
+                  <div className="mt-2 text-right">
+                    <span className={`${activity.type === 'income'
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                      }`}>
+                      {activity.type === 'income' ? '+' : '-'}
+                      ¥{activity.amount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
