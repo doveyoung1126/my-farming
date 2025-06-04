@@ -1,12 +1,15 @@
 // app/(dashboard)/page.tsx
-import { getDashboardStats, getRecentActivities } from '@/lib/data';
-
+// import { getDashboardStats, getRecentActivities } from '@/lib/data';
+import { getAllActiviesDetails } from '@/lib/data'
 export default async function Home() {
 
-  const [stats, activities] = await Promise.all([
-    getDashboardStats(),
-    getRecentActivities()
-  ]);
+  /*   const [stats, activities] = await Promise.all([
+      getDashboardStats(),
+      getRecentActivities()
+    ]);
+   */
+
+  const activities = await getAllActiviesDetails()
 
   // 日期格式化
   const formatDate = (timestamp: number) => {
@@ -27,7 +30,7 @@ export default async function Home() {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-gray-500 text-sm">总支出</div>
           <div className="text-2xl font-bold text-red-600 mt-1">
-            ¥{stats.totalSpent.toLocaleString()}
+            ¥100
           </div>
           <div className="text-xs text-gray-400 mt-1 flex items-center">
             <span className="text-red-500">↑</span>
@@ -38,7 +41,7 @@ export default async function Home() {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-gray-500 text-sm">总收入</div>
           <div className="text-2xl font-bold text-green-600 mt-1">
-            ¥{stats.totalEarned.toLocaleString()}
+            ¥200
           </div>
           <div className="text-xs text-gray-400 mt-1 flex items-center">
             <span className="text-green-500">↑</span>
@@ -51,7 +54,7 @@ export default async function Home() {
             <div>
               <div className="text-gray-500 text-sm">当前作物</div>
               <div className="text-2xl font-bold text-blue-600 mt-1">
-                {stats.currentCrops} 种
+                1 种
               </div>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -74,21 +77,37 @@ export default async function Home() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-medium text-gray-800">
-                      {activity.action}
-                      {activity.type === 'event' && ` · ${activity.subject}`}
+                      {activity.crop} · {activity.type}
+                      {/* {activity.type === 'event' && ` · ${activity.subject}`} */}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">
+
+                    {/* <p className="text-sm text-gray-500 mt-1">
                       {activity.type === 'income' && `买家：${activity.subject}`}
                       {activity.type === 'expense' && activity.subject}
-                    </p>
+                      {activity.crop}
+                    </p> */}
                   </div>
                   <span className="text-sm text-gray-400">
-                    {formatDate(activity.timestamp)}
+                    {activity.date.toDateString()}
                   </span>
                 </div>
 
                 {/* 金额显示 */}
-                {activity.amount && (
+                {(activity.records) && activity.records.map((record) => (
+                  <div key={record.id} className="flex justify-between items-start">
+                    <p className="text-sm text-gray-500 mt-1">
+                      {record.recordType}
+                    </p>
+                    <span className={`${record.amount > 0
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                      }`}>
+                      {record.amount.toLocaleString()}
+                    </span>
+                  </div>
+
+                ))}
+                {/* {activity.amount && (
                   <div className="mt-2 text-right">
                     <span className={`${activity.type === 'income'
                       ? 'text-green-600'
@@ -98,7 +117,7 @@ export default async function Home() {
                       ¥{activity.amount.toLocaleString()}
                     </span>
                   </div>
-                )}
+                )} */}
               </div>
             ))}
           </div>

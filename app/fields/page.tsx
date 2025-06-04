@@ -1,17 +1,15 @@
 // app/activities/page.tsx
-import {
-    getPlantingEventsWithFinance,
-    getAllFields,
-    getFieldsWithCurrentCrop
-} from '@/lib/data'
+import { getAllActiviesDetails } from '@/lib/data'
 import ActivitiesList from '@/components/ActivitiesList'
 import FieldsOverview from '@/components/FieldsOverview'
 
-export default async function FieldsPage() {
-    const [events, fields] = await Promise.all([
+export const FieldsPage = async () => {
+    /* const [events, fields] = await Promise.all([
         getPlantingEventsWithFinance(),
         getFieldsWithCurrentCrop() // 新增获取所有地块
-    ]);
+    ]); */
+
+    const activities = await getAllActiviesDetails()
 
     return (
         <div className="h-full flex flex-col">
@@ -19,7 +17,9 @@ export default async function FieldsPage() {
                 <h1 className="text-2xl font-bold text-gray-800">农事活动</h1>
                 <p className="text-sm text-gray-500 mt-1">2024年5月20日</p>
             </header>
-            <FieldsOverview fields={fields} />
+            {/* <FieldsOverview fields={fields} /> */}
             <ActivitiesList initialEvents={events} fields={fields} />
         </div>)
 }
+
+export default FieldsPage

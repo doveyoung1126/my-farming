@@ -1,11 +1,12 @@
 // components/ActivitiesList.tsx
 'use client';
-
+import { ActivityWithFinancials } from '@/lib/types'
 import { useState } from 'react';
 
 export default function ActivitiesList({
     initialEvents,
-    fields
+    fields,
+    activities
 }: {
     initialEvents: any[];
     fields: {
@@ -13,7 +14,8 @@ export default function ActivitiesList({
         name: string,
         area: number,
         current_crop: string
-    }[]
+    }[],
+    activities: ActivityWithFinancials[]
 }) {
     const [selectedField, setSelectedField] = useState<number | 'all'>('all');
 

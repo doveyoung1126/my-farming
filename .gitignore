@@ -42,3 +42,7 @@ next-env.d.ts
 
 # app
 farm.db
+*.db
+*.db-*
+
+/lib/generated/prisma

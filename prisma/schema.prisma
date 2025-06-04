@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ActivityType {
+  id    Int    @id @default(autoincrement())
+  name  String @unique 
+  activities Activity[] 
+}
+
+enum RecordCategory {
+  income
+  expense
+}
+
+model RecordCategoryType {
+  id    Int    @id @default(autoincrement())
+  name  String @unique 
+  category RecordCategory @default(expense)
+  records     Record[]    
+}
+
+model Plot {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  area      Float
+  crop        String?       
+  activities Activity[] 
+}
+
+model Activity {
+  id          Int               @id @default(autoincrement())
+  type        ActivityType      @relation(fields: [activityTypeId], references: [id])
+  activityTypeId Int            // 关联类型ID
+  date        DateTime          @default(now())
+  plot        Plot              @relation(fields: [plotId], references: [id])
+  plotId      Int
+  records     Record[]    
+}
+
+model Record {
+  id          Int                  @id @default(autoincrement())
+  amount      Float           
+  type        RecordCategoryType   @relation(fields: [recordTypeId], references: [id])
+  recordTypeId Int                 // 关联类型ID
+  date        DateTime             @default(now())
+  description String?         
+  activity    Activity?            @relation(fields: [activityId], references: [id])
+  activityId  Int?            
+}

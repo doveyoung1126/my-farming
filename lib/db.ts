@@ -1,17 +1,13 @@
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
+import { PrismaClient } from '@prisma/client'
 
-export async function connectDB() {
-    return open({
-        filename: './farm.db', // 确保路径正确
-        driver: sqlite3.Database,
-        mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
-    });
+declare global {
+    var prisma: PrismaClient | undefined
 }
 
-// 启用外键约束
-async function initDB() {
-    const db = await connectDB();
-    await db.run('PRAGMA foreign_keys = ON;');
-}
-initDB();
+// 热重载保护：开发环境复用实例
+const prisma = globalThis.prisma || new PrismaClient()
+
+if (process.env.NODE_ENV === 'development')
+    globalThis.prisma = prisma
+
+export default prisma
