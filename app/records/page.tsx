@@ -1,6 +1,6 @@
 // import { getFinancialSummary, getFinancialRecords } from '@/lib/data';
 import { getAllActiviesDetails } from '@/lib/data'
-import { RecordsList } from '@/components/RecordsList';
+import { RecordsList } from '@/components/records/RecordsList';
 import { FinancialWithActivity } from '@/lib/types'
 
 export default async function RecordsPage() {

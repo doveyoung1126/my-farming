@@ -88,7 +88,7 @@ export default async function Home() {
                     </p> */}
                   </div>
                   <span className="text-sm text-gray-400">
-                    {activity.date.toDateString()}
+                    {activity.date.toLocaleDateString()}
                   </span>
                 </div>
 

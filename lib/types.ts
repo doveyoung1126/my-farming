@@ -48,4 +48,6 @@ const activityWithFinancials = {
 } as const
 
 // 基于查询结构生成精确类型
-export type PrismaActivityWithFinancials = Prisma.ActivityGetPayload<typeof activityWithFinancials>;
+export type PrismaActivityWithFinancials = Prisma.ActivityGetPayload<typeof activityWithFinancials>
+export type PrismaPlots = Prisma.PlotGetPayload<{}>
+export type PrismaRecords = Prisma.RecordGetPayload<{}>

@@ -6,7 +6,7 @@ import clsx from 'clsx';
 const navItems = [
     { href: '/dashboard', icon: '🏠', label: '概览', replace: true },
     { href: '/records', icon: '💰', label: '财务', replace: true },
-    { href: '/fields', icon: '🌱', label: '农事', replace: true },
+    { href: '/activities', icon: '🌱', label: '农事', replace: true },
     { href: '/alerts', icon: '🔔', label: '提醒', replace: true },
     { href: '/settings', icon: '⚙️', label: '设置', replace: true }
 ];

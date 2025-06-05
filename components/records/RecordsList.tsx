@@ -13,9 +13,9 @@ export const RecordsList = ({
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
 
     // 客户端过滤逻辑
-    /* const filteredRecords = records.filter(record =>
-        filter === 'all' ? true : record.type === filter
-    ); */
+    const filteredRecords = records.filter(record =>
+        filter === 'all' ? true : record.recordType === filter
+    )
 
     return (
         <>
@@ -24,7 +24,7 @@ export const RecordsList = ({
             {/* 记录列表 */}
             <div className="flex-1 min-h-0 overflow-y-auto pb-30">
                 <div className="px-4 mt-4 space-y-3">
-                    {records.map((record) => (
+                    {filteredRecords.map((record) => (
                         <div
                             key={record.id}
                             className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500"
@@ -47,7 +47,7 @@ export const RecordsList = ({
                                         {record.amount > 0 ? '+' : '-'}
                                         {record.amount.toLocaleString()}
                                     </span>
-                                    <div className="text-xs text-gray-400 mt-1">
+                                    <div className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
                                         {record.date.toLocaleDateString('zh-CN')}
                                     </div>
                                 </div>
