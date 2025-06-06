@@ -13,10 +13,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum CycleMarker {
+  START  // 周期开始（种植）
+  END    // 周期结束（采收）
+}
+
 model ActivityType {
   id    Int    @id @default(autoincrement())
   name  String @unique 
   activities Activity[] 
+  cycleMarker CycleMarker?
 }
 
 enum RecordCategory {

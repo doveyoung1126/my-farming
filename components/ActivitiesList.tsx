@@ -25,7 +25,7 @@ const ActivitiesList = ({
                       {activity.crop}
                     </p> */}
                     </div>
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-400" suppressHydrationWarning>
                         {activity.date.toLocaleDateString('zh-CN')}
                     </span>
                 </div>

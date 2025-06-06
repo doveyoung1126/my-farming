@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 export interface ActivityBasic {
     id: number;
     type: string;        // 活动类型名称
+    cycleMarker: "START" | "END" | null
     crop: string | null;
     date: Date;
     plotName: string;    // 地块名称
