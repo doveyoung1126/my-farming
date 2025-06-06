@@ -1,6 +1,7 @@
 // app/(dashboard)/page.tsx
 // import { getDashboardStats, getRecentActivities } from '@/lib/data';
 import { getAllActiviesDetails } from '@/lib/data'
+import ActivitiesList from '@/components/ActivitiesList'
 export default async function Home() {
 
   /*   const [stats, activities] = await Promise.all([
@@ -10,6 +11,7 @@ export default async function Home() {
    */
 
   const activities = await getAllActiviesDetails()
+  const latestActivities = activities.slice(0, 9)
 
   // 日期格式化
   const formatDate = (timestamp: number) => {
@@ -69,57 +71,7 @@ export default async function Home() {
         <div className="h-full flex flex-col px-4 mt-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">近期活动</h2>
           <div className="flex-1 min-h-0 overflow-y-auto pb-30 space-y-4">
-            {activities.map((activity) => (
-              <div
-                key={`${activity.type}-${activity.id}`}
-                className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-gray-800">
-                      {activity.crop} · {activity.type}
-                      {/* {activity.type === 'event' && ` · ${activity.subject}`} */}
-                    </h3>
-
-                    {/* <p className="text-sm text-gray-500 mt-1">
-                      {activity.type === 'income' && `买家：${activity.subject}`}
-                      {activity.type === 'expense' && activity.subject}
-                      {activity.crop}
-                    </p> */}
-                  </div>
-                  <span className="text-sm text-gray-400">
-                    {activity.date.toLocaleDateString()}
-                  </span>
-                </div>
-
-                {/* 金额显示 */}
-                {(activity.records) && activity.records.map((record) => (
-                  <div key={record.id} className="flex justify-between items-start">
-                    <p className="text-sm text-gray-500 mt-1">
-                      {record.recordType}
-                    </p>
-                    <span className={`${record.amount > 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                      }`}>
-                      {record.amount.toLocaleString()}
-                    </span>
-                  </div>
-
-                ))}
-                {/* {activity.amount && (
-                  <div className="mt-2 text-right">
-                    <span className={`${activity.type === 'income'
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                      }`}>
-                      {activity.type === 'income' ? '+' : '-'}
-                      ¥{activity.amount.toLocaleString()}
-                    </span>
-                  </div>
-                )} */}
-              </div>
-            ))}
+            <ActivitiesList activities={latestActivities} />
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ export interface ActivityBasic {
     date: Date;
     plotName: string;    // 地块名称
     plotArea: number;    // 地块面积
+    plotId: number
 }
 
 // 财务记录类型

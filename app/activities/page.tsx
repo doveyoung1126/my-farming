@@ -1,6 +1,6 @@
 // app/activities/page.tsx
 import { getAllActiviesDetails, getPlots } from '@/lib/data'
-import ActivitiesList from '@/components/ActivitiesList'
+import Activities from '@/components/activities/Activities'
 import { PrismaPlots } from '@/lib/types'
 // import FieldsOverview from '@/components/FieldsOverview'
 
@@ -19,12 +19,12 @@ export const ActiviesPage = async () => {
                 <h1 className="text-2xl font-bold text-gray-800">农事活动</h1>
                 <p className="text-sm text-gray-500 mt-1">2024年5月20日</p>
             </header>
-            <FieldsOverview plots={plots} />
-            {/* <ActivitiesList initialEvents={events} fields={fields} /> */}
+            <PlotsOverview plots={plots} />
+            <Activities activities={activities} plots={plots} />
         </div>)
 }
 
-const FieldsOverview = ({ plots }: { plots: PrismaPlots[] }) => {
+const PlotsOverview = ({ plots }: { plots: PrismaPlots[] }) => {
 
     return (
         <div className="p-4 border-b">

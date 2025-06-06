@@ -34,6 +34,7 @@ export const getAllActiviesDetails = async () => {
             type: activity.type.name,
             crop: activity.plot.crop,
             date: activity.date,
+            plotId: activity.plot.id,
             plotName: activity.plot.name,
             plotArea: activity.plot.area,
             records: activity.records.map(record => ({
