@@ -15,7 +15,7 @@ const ActivitiesList = ({
                 <div className="flex justify-between items-start">
                     <div>
                         <h3 className="font-medium text-gray-800">
-                            {activity.crop} · {activity.type}
+                            {activity.plotName} · {activity.type}
                             {/* {activity.type === 'event' && ` · ${activity.subject}`} */}
                         </h3>
 
@@ -33,8 +33,8 @@ const ActivitiesList = ({
                 {/* 金额显示 */}
                 {(activity.records) && activity.records.map((record) => (
                     <div key={record.id} className="flex justify-between items-start">
-                        <p className="text-sm text-gray-500 mt-1">
-                            {record.recordType}
+                        <p className="text-sm text-gray-500 mt-1" suppressHydrationWarning>
+                            {record.date.toLocaleDateString('zh-CN')} - {record.description}
                         </p>
                         <span className={`${record.amount > 0
                             ? 'text-green-600'

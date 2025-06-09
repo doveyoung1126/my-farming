@@ -1,4 +1,4 @@
-import { ActivityWithFinancials, PrismaActivityWithFinancials, PrismaPlots } from './types'
+import { ActivityWithFinancials, PrismaActivityWithFinancials, ActivityCycle } from './types'
 import prisma from './db'
 
 export const getAllActiviesDetails = async () => {
@@ -61,4 +61,42 @@ export const getPlots = async () => {
     } finally {
         await prisma.$disconnect()
     }
+}
+
+export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number) => {
+    console.log(activities)
+    const sortedActivities = [...activities].reverse()
+    const generateCycleId = (plotId: number, startDate: Date) => {
+        return `cycle-${plotId}-${startDate.getTime()}`
+    }
+
+    const calculateCycles = () => {
+        let currentCycle: ActivityCycle | null = null
+        const cycles: ActivityCycle[] = []
+
+        for (const activity of sortedActivities) {
+            if (activity.cycleMarker === 'START') {
+                if (currentCycle) cycles.push(currentCycle);
+                currentCycle = {
+                    id: generateCycleId(plotId, activity.date),
+                    plotId: plotId,
+                    start: activity.date,
+                    end: null,
+                    activities: [activity]
+                };
+            }
+            else if (activity.cycleMarker === 'END' && currentCycle) {
+                currentCycle.end = activity.date;
+                currentCycle.activities.push(activity);
+                cycles.push(currentCycle);
+                currentCycle = null;
+            }
+            else if (currentCycle) {
+                currentCycle.activities.push(activity);
+            }
+        }
+        if (currentCycle) cycles.push(currentCycle);
+        return cycles;
+    }
+    return calculateCycles()
 }

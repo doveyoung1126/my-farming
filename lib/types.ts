@@ -36,6 +36,14 @@ export interface FinancialWithActivity extends FinancialRecord {
     crop: string | null
 }
 
+export interface ActivityCycle {
+    id: string
+    plotId: number
+    start: Date
+    end: Date | null
+    activities: ActivityWithFinancials[]
+}
+
 // 使用 Prisma 工具定义查询返回类型
 const activityWithFinancials = {
     include: {

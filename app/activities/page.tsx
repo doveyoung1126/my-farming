@@ -19,7 +19,7 @@ export const ActiviesPage = async () => {
                 <h1 className="text-2xl font-bold text-gray-800">农事活动</h1>
                 <p className="text-sm text-gray-500 mt-1">2024年5月20日</p>
             </header>
-            <PlotsOverview plots={plots} />
+            {/* <PlotsOverview plots={plots} /> */}
             <Activities activities={activities} plots={plots} />
         </div>)
 }
