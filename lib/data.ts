@@ -64,7 +64,6 @@ export const getPlots = async () => {
 }
 
 export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number) => {
-    console.log(activities)
     const sortedActivities = [...activities].reverse()
     const generateCycleId = (plotId: number, startDate: Date) => {
         return `cycle-${plotId}-${startDate.getTime()}`
@@ -99,4 +98,41 @@ export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: numb
         return cycles;
     }
     return calculateCycles()
+}
+
+export const getActivitiesRecordsSummary = (activities: ActivityWithFinancials[]) => {
+    // const expenseRecords = activities.filter(activity => activity.)
+    const activitiesRecordSummary = activities.map(activity => {
+        return getActivityRecordsSummary(activity)
+    })
+    const totalExpense = activitiesRecordSummary.reduce((sum, summary) => {
+        return sum + summary.expense
+    }, 0)
+    const totalIncom = activitiesRecordSummary.reduce((sum, summary) => {
+        return sum + summary.income
+    }, 0)
+
+    return {
+        cycleExpense: totalExpense,
+        cycleIncome: totalIncom,
+        cycleProfit: totalExpense + totalIncom,
+        cycleRoi: (totalExpense + totalIncom) / Math.abs(totalExpense) * 100
+    }
+}
+
+const getActivityRecordsSummary = (activity: ActivityWithFinancials) => {
+    const { records } = activity
+    const totalExpense = records.reduce((sum, record) => {
+        return record.amount > 0 ? sum : sum + record.amount
+    }, 0)
+    const totalIncom = records.reduce((sum, record) => {
+        return record.amount > 0 ? sum + record.amount : sum
+    }, 0)
+
+    return {
+        activityId: activity.id,
+        expense: totalExpense,
+        income: totalIncom,
+        profit: totalIncom + totalExpense
+    }
 }
