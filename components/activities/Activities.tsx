@@ -100,11 +100,11 @@ export default function Activities({
                     <button
                         onClick={() => setSelectedCycle('all')}
                         className={`
-              px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-              ${selectedCycle === 'all'
+                            px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+                            ${selectedCycle === 'all'
                                 ? 'bg-blue-100 text-blue-700 border border-blue-300'
                                 : 'text-gray-500 hover:bg-gray-100'}
-            `}
+                        `}
                     >
                         全部周期
                     </button>
@@ -115,12 +115,12 @@ export default function Activities({
                             key={cycle.id}
                             onClick={() => setSelectedCycle(cycle.id)}
                             className={`
-                px-3 py-1.5 rounded-full text-sm font-medium flex items-center
-                transition-colors
-                ${selectedCycle === cycle.id
+                                px-3 py-1.5 rounded-full text-sm font-medium flex items-center
+                                transition-colors
+                                ${selectedCycle === cycle.id
                                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                                     : 'text-gray-500 hover:bg-gray-100'}
-              `}
+                            `}
                         >
                             {/* 周期状态指示器 */}
                             <span className={`w-2 h-2 rounded-full mr-2 ${cycle.end ? 'bg-green-500' : 'bg-blue-500 animate-pulse'}`}></span>
@@ -211,8 +211,9 @@ export default function Activities({
             {currentCycle && <CycleSummary cycle={currentCycle} />}
 
             {/* 活动列表 */}
-            <div className="flex-1 overflow-y-auto pb-30">
-                <div className="space-y-4 px-4">
+
+            <div className="flex-1 overflow-y-auto mt-3">
+                <div className="space-y-4 px-2">
                     <ActivitiesList activities={filteredActivities} />
                 </div>
             </div>
