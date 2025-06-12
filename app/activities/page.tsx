@@ -2,59 +2,56 @@
 import { getAllActiviesDetails, getPlots } from '@/lib/data'
 import Activities from '@/components/activities/Activities'
 import { PrismaPlots } from '@/lib/types'
-// import FieldsOverview from '@/components/FieldsOverview'
+import { CalendarDays } from 'lucide-react'
 
 export const ActiviesPage = async () => {
-    /* const [events, fields] = await Promise.all([
-        getPlantingEventsWithFinance(),
-        getFieldsWithCurrentCrop() // 新增获取所有地块
-    ]); */
 
     const plots: PrismaPlots[] = await getPlots()
     const activities = await getAllActiviesDetails()
 
+    // 更友好的日期格式
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    })
+
     return (
         <div className="h-full flex flex-col pb-30">
-            <header className="bg-white p-4 shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800">农事活动</h1>
-                <p className="text-sm text-gray-500 mt-1">2024年5月20日</p>
-            </header>
-            {/* <PlotsOverview plots={plots} /> */}
-            <Activities activities={activities} plots={plots} />
-        </div>)
-}
-
-const PlotsOverview = ({ plots }: { plots: PrismaPlots[] }) => {
-
-    return (
-        <div className="p-4 border-b">
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {plots.map(plot => (
-                    <div
-                        key={plot.id}
-                        className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                    >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-lg font-medium">{plot.name}</h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {plot.area}亩
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 rounded-full text-sm ${plot.crop
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                    {plot.crop || '空闲'}
+            {/* 优化头部样式 */}
+            <header className="bg-white px-5 py-4 shadow-sm">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+                                <span className="bg-gradient-to-r from-green-600 to-emerald-500 text-transparent bg-clip-text">
+                                    农事活动
                                 </span>
+                            </h1>
+                            <div className="flex items-center mt-1 text-gray-500 text-sm">
+                                <CalendarDays className="w-4 h-4 mr-1.5 text-gray-400" />
+                                {formattedDate}
+                            </div>
+                        </div>
+
+                        {/* 添加状态指示器 */}
+                        <div className="flex flex-wrap gap-2">
+                            <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center">
+                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                                运营中地块: {plots.filter(p => p.crop).length}
+                            </div>
+                            <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span>
+                                活动总数: {activities.length}
                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
-        </div>
-    )
+                </div>
+            </header>
+            <div className="h-2 bg-gradient-to-r from-emerald-100 via-green-100 to-teal-100"></div>
+            <Activities activities={activities} plots={plots} />
+        </div>)
 }
 
 export default ActiviesPage

@@ -69,20 +69,6 @@ export default function Activities({
                                 </span>
                             </div>
                         </div>
-
-                        {/* 新增：地块财务摘要 */}
-                        {selectedPlot === plot.id && (
-                            <div className="mt-3 pt-2 border-t border-gray-100">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">本期支出</span>
-                                    <span className="font-medium text-red-600">¥8,420</span>
-                                </div>
-                                <div className="flex justify-between text-sm mt-1">
-                                    <span className="text-gray-500">本期收入</span>
-                                    <span className="font-medium text-green-600">¥15,800</span>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>
@@ -138,39 +124,72 @@ export default function Activities({
         const summary = getActivitiesRecordsSummary(cycle.activities);
 
         return (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg mx-4 my-3 shadow-sm">
-                <h3 className="text-md font-semibold text-gray-700 mb-3">周期财务概览</h3>
-
-                {/* 财务指标卡片 */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {/* 支出卡片 */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500">总支出</p>
-                        <p className="text-lg font-bold text-red-600">¥{Math.abs(summary.cycleExpense).toFixed(2)}</p>
-                        {/* <p className="text-xs text-gray-400 mt-1">共 {summary.expenseCount} 笔</p> */}
+            <div className="bg-white rounded-lg mx-4 my-3 p-3 shadow-sm border border-gray-100">
+                {/* 紧凑型财务指标卡片 */}
+                <div className="flex items-center justify-between">
+                    {/* 支出指标 */}
+                    <div className="text-center px-2 py-1">
+                        <p className="text-xs text-gray-500 mb-1">支出</p>
+                        <p className="text-sm font-medium text-red-600">
+                            ¥{Math.abs(summary.cycleExpense).toFixed(2)}
+                        </p>
                     </div>
 
-                    {/* 收入卡片 */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500">总收入</p>
-                        <p className="text-lg font-bold text-green-600">¥{summary.cycleIncome.toFixed(2)}</p>
-                        {/* <p className="text-xs text-gray-400 mt-1">共 {summary.incomeCount} 笔</p> */}
+                    {/* 分隔线 */}
+                    <div className="w-px h-8 bg-gray-200"></div>
+
+                    {/* 收入指标 */}
+                    <div className="text-center px-2 py-1">
+                        <p className="text-xs text-gray-500 mb-1">收入</p>
+                        <p className="text-sm font-medium text-green-600">
+                            ¥{summary.cycleIncome.toFixed(2)}
+                        </p>
                     </div>
 
-                    {/* 利润卡片 */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500">净利润</p>
-                        <p className={`text-lg font-bold ${summary.cycleProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {/* 分隔线 */}
+                    <div className="w-px h-8 bg-gray-200"></div>
+
+                    {/* 利润指标 */}
+                    <div className="text-center px-2 py-1">
+                        <p className="text-xs text-gray-500 mb-1">利润</p>
+                        <p className={`text-sm font-medium ${summary.cycleProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {summary.cycleProfit >= 0 ? '+' : '-'}¥{Math.abs(summary.cycleProfit).toFixed(2)}
                         </p>
                     </div>
 
-                    {/* ROI卡片 */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500">投资回报率</p>
-                        <p className={`text-lg font-bold ${summary.cycleRoi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {/* 分隔线 */}
+                    <div className="w-px h-8 bg-gray-200"></div>
+
+                    {/* ROI指标 */}
+                    <div className="text-center px-2 py-1">
+                        <p className="text-xs text-gray-500 mb-1">回报率</p>
+                        <p className={`text-sm font-medium ${summary.cycleRoi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {summary.cycleRoi >= 0 ? '+' : ''}{summary.cycleRoi.toFixed(1)}%
                         </p>
+                    </div>
+                </div>
+
+                {/* 进度条 - 直观展示盈亏比例 */}
+                <div className="mt-3">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>支出</span>
+                        <span>收入</span>
+                    </div>
+                    <div className="w-full h-2 bg-green-500 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-red-500"
+                            style={{
+                                width: `${Math.abs(summary.cycleExpense) / (Math.abs(summary.cycleExpense) + summary.cycleIncome) * 100}%`
+                            }}
+                        ></div>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                        <span className="text-xs text-gray-500">
+                            {Math.round(Math.abs(summary.cycleExpense) / (Math.abs(summary.cycleExpense) + summary.cycleIncome) * 100)}%成本
+                        </span>
+                        <span className="text-xs text-gray-500">
+                            {Math.round(summary.cycleIncome / (Math.abs(summary.cycleExpense) + summary.cycleIncome) * 100)}%收益
+                        </span>
                     </div>
                 </div>
             </div>
