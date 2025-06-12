@@ -20,6 +20,7 @@ export interface FinancialRecord {
     description: string | null;
     recordType: string;  // 财务类型名称
     date: Date;
+    recordCategory: 'expense' | 'income' | null;
 }
 
 // 活动详情类型（包含财务记录）
@@ -29,11 +30,11 @@ export interface ActivityWithFinancials extends ActivityBasic {
 
 // 财务记录详情（包含农事活动）
 export interface FinancialWithActivity extends FinancialRecord {
-    activityId: number,
-    activityType: string,
-    activityDate: Date,
-    plotName: string,
-    crop: string | null
+    activityId?: number,
+    activityType?: string,
+    activityDate?: Date,
+    plotName?: string,
+    crop?: string | null
 }
 
 export interface ActivityCycle {
@@ -57,7 +58,21 @@ const activityWithFinancials = {
     }
 } as const
 
+const recordWithActivity = {
+    include: {
+        type: true,
+        activity: {
+            include: {
+                type: true,
+                plot: true
+            }
+
+        }
+    }
+} as const
+
 // 基于查询结构生成精确类型
 export type PrismaActivityWithFinancials = Prisma.ActivityGetPayload<typeof activityWithFinancials>
 export type PrismaPlots = Prisma.PlotGetPayload<{}>
-export type PrismaRecords = Prisma.RecordGetPayload<{}>
+export type PrismaRecords = Prisma.RecordGetPayload<typeof recordWithActivity>
+export type PrismaRecordsWhere = Prisma.RecordWhereInput

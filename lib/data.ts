@@ -1,9 +1,15 @@
-import { ActivityWithFinancials, PrismaActivityWithFinancials, ActivityCycle } from './types'
+import {
+    ActivityWithFinancials,
+    PrismaActivityWithFinancials,
+    ActivityCycle, PrismaRecords,
+    PrismaRecordsWhere,
+    FinancialWithActivity
+} from './types'
 import prisma from './db'
 
 export const getAllActiviesDetails = async () => {
     try {
-        const activities = await prisma.activity.findMany({
+        const activities: PrismaActivityWithFinancials[] = await prisma.activity.findMany({
             include: {
                 type: true,
                 plot: true,
@@ -134,5 +140,71 @@ const getActivityRecordsSummary = (activity: ActivityWithFinancials) => {
         expense: totalExpense,
         income: totalIncom,
         profit: totalIncom + totalExpense
+    }
+}
+
+export const getRecordsWithActivity = async (date1?: Date, date2?: Date): Promise<FinancialWithActivity[]> => {
+    try {
+        const where: PrismaRecordsWhere = {}
+
+        if (date1 && date2) {
+            const [start, end] = [date1, date2].sort((a, b) => a.getTime() - b.getTime())
+
+            where.date = {
+                gte: start,
+                lte: new Date(end.setHours(23, 59, 59, 999))
+            }
+        } else if (date1) {
+            const start = new Date(date1)
+            start.setHours(0, 0, 0, 0)
+
+            const end = new Date(date1)
+            end.setHours(23, 59, 59, 999)
+
+            where.date = {
+                gte: start,
+                lte: end
+            }
+        }
+        const records: PrismaRecords[] = await prisma.record.findMany({
+            where,
+            include: {
+                type: true,
+                activity: {
+                    include: {
+                        type: true,
+                        plot: true
+                    }
+                }
+            },
+            orderBy: {
+                date: 'desc'
+            }
+        })
+
+        return records.map(transformRecord)
+
+        function transformRecord(record: PrismaRecords): FinancialWithActivity {
+            return {
+                id: record.id,
+                amount: record.amount,
+                date: record.date,
+                description: record.description,
+                recordType: record.type.name,
+                recordCategory: record.type.category,
+                activityId: record.activity?.id,
+                activityDate: record.activity?.date,
+                activityType: record.activity?.type.name,
+                plotName: record.activity?.plot.name,
+                crop: record.activity?.plot.crop
+            }
+        }
+    }
+    catch (error) {
+        console.log('获取财务数据失败：', error)
+        throw new Error('无法获取财务数据')
+    }
+    finally {
+        await prisma.$disconnect()
     }
 }
