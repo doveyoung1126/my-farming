@@ -1,7 +1,7 @@
 // components/activities/Activities.tsx
 'use client';
 import { ActivityWithFinancials, PrismaPlots } from '@/lib/types'
-import ActivitiesList from '../ActivitiesList'
+import ActivitiesList from './ActivitiesList'
 import { useState } from 'react'
 import { getPlotCycles, getActivitiesRecordsSummary } from '@/lib/data'
 
