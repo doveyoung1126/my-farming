@@ -1,33 +1,69 @@
 // components/reports/FinancialReportView.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { FinancialWithActivity } from "@/lib/types";
+import { RecordItem } from './RecordItem';
 
 interface FinancialReportViewProps {
     records: FinancialWithActivity[];
 }
 
 /**
- * 财务报告视图
+ * 财务报告视图 (纯列表)
  * 
  * 职责:
- * 1. 接收所有财务记录。
- * 2. (未来) 实现时间范围、收支类型等筛选逻辑。
- * 3. (未来) 展示KPI卡片和图表。
- * 4. 渲染财务明细列表。
+ * 1. 接收经过筛选的财务记录。
+ * 2. 在客户端对记录进行分组和排序，以避免水合错误。
+ * 3. 渲染财务明细列表。
  */
 export function FinancialReportView({ records }: FinancialReportViewProps) {
-    // TODO: 在此实现筛选、图表和KPI卡片
+    const [groupedRecords, setGroupedRecords] = useState<Map<string, FinancialWithActivity[]>>(new Map());
+
+    useEffect(() => {
+        // 将分组逻辑放在useEffect中，确保只在客户端执行
+        const groups = new Map<string, FinancialWithActivity[]>();
+        records.forEach(record => {
+            const monthKey = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+            if (!groups.has(monthKey)) {
+                groups.set(monthKey, []);
+            }
+            groups.get(monthKey)!.push(record);
+        });
+        setGroupedRecords(groups);
+    }, [records]); // 当传入的records变化时，重新计算分组
+
+    const sortedMonths = Array.from(groupedRecords.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    if (records.length === 0) {
+        return (
+            <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+                <p className="text-gray-500">在当前筛选条件下没有找到财务记录。</p>
+            </div>
+        );
+    }
+
+    // 初始渲染或正在计算时，可以显示一个加载状态
+    if (sortedMonths.length === 0 && records.length > 0) {
+        return (
+            <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+                <p className="text-gray-500">正在加载记录...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-800">财务明细</h2>
-                <p className="text-sm text-gray-500">此处将显示详细的财务记录、筛选器和图表。</p>
-                {/* 临时展示数据条数以确认数据已传入 */}
-                <p className="mt-4 text-blue-600">已加载 {records.length} 条财务记录。</p>
-            </div>
-            {/* 此处将渲染记录列表 */}
+        <div className="space-y-6">
+            {sortedMonths.map(month => (
+                <div key={month}>
+                    <h3 className="font-semibold text-gray-700 px-2 py-1 my-2 sticky top-[160px] bg-gray-50 z-10">{month}</h3>
+                    <div className="space-y-3">
+                        {groupedRecords.get(month)!.map(record => (
+                            <RecordItem key={record.id} record={record} />
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }
