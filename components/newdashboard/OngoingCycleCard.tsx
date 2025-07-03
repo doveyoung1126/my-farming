@@ -1,33 +1,49 @@
+// components/newdashboard/OngoingCycleCard.tsx
+'use client';
 import { ActivityCycle } from "@/lib/types";
 import { getActivitiesRecordsSummary } from "@/lib/data";
-import { Leaf, TrendingUp } from "lucide-react";
 
 export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const summary = getActivitiesRecordsSummary(cycle.activities);
+    const days = Math.floor((new Date().getTime() - cycle.start.getTime()) / (1000 * 60 * 60 * 24));
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h3 className="font-bold text-gray-800">{cycle.plot.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1 flex items-center">
-                        <Leaf className="w-4 h-4 mr-1.5 text-green-500" />
-                        {cycle.plot.crop}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full mr-1.5 animate-pulse"></span>
-                        进行中
-                    </span>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
+            {/* Card Header */}
+            <div className="p-4 border-b border-slate-100">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h3 className="font-bold text-slate-800">{cycle.plot.name}</h3>
+                        <p className="text-sm text-slate-500 mt-1">作物: {cycle.plot.crop || '未指定'}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-2xl font-bold text-emerald-600">{days}</p>
+                        <p className="text-xs text-slate-500">天</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">当前累计支出</p>
-                <p className="text-2xl font-semibold text-red-600">
-                    ¥{Math.abs(summary.cycleExpense).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
+            {/* Card Body */}
+            <div className="p-4 space-y-3">
+                <div>
+                    <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
+                        <span>已投入</span>
+                        <span className="font-semibold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2.5">
+                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, (Math.abs(summary.cycleExpense) / 500) * 100)}%` }}></div>
+                    </div>
+                </div>
+                <div className="text-xs text-slate-400 pt-2">
+                    最近操作: {cycle.activities[cycle.activities.length - 1]?.type || '无'}
+                </div>
+            </div>
+
+            {/* Card Footer */}
+            <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
+                <button className="w-full text-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                    + 添加记录
+                </button>
             </div>
         </div>
     );

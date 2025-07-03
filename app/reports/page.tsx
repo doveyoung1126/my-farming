@@ -36,7 +36,7 @@ export default async function ReportsPage() {
     });
 
     return (
-        <div className="h-full flex flex-col bg-gray-50 pb-16">
+        <div className="h-full flex flex-col bg-slate-50 pb-16">
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
                 <h1 className="text-2xl font-bold text-gray-800">分析报告</h1>
                 <p className="text-sm text-gray-500 mt-1">在这里回顾您的所有农事活动和财务状况。</p>

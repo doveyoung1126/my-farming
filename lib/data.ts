@@ -40,7 +40,7 @@ export const getAllActiviesDetails = async () => {
             id: activity.id,
             type: activity.type.name,
             cycleMarker: activity.type.cycleMarker,
-            crop: activity.plot.crop,
+            crop: activity.crop,
             date: activity.date,
             plotId: activity.plot.id,
             plotName: activity.plot.name,
