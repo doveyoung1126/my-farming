@@ -42,7 +42,8 @@ export interface ActivityCycle {
     plotId: number
     start: Date
     end: Date | null
-    activities: ActivityWithFinancials[]
+    activities: ActivityWithFinancials[];
+    plot: PrismaPlots; // 添加 plot 属性
 }
 
 // 使用 Prisma 工具定义查询返回类型

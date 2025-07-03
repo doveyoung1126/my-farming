@@ -203,7 +203,7 @@ export default function Activities({
 
     // 获取当前地块的周期
     const cycles = selectedPlot === 'all' ? [] :
-        getPlotCycles(filteredPlotActivities, selectedPlot);
+        getPlotCycles(filteredPlotActivities, selectedPlot, plots);
 
     // 获取当前周期的活动
     const getFilteredActivities = () => {

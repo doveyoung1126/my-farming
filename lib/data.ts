@@ -3,7 +3,8 @@ import {
     PrismaActivityWithFinancials,
     ActivityCycle, PrismaRecords,
     PrismaRecordsWhere,
-    FinancialWithActivity
+    FinancialWithActivity,
+    PrismaPlots
 } from './types'
 import prisma from './db'
 
@@ -69,11 +70,12 @@ export const getPlots = async () => {
     }
 }
 
-export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number) => {
+export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number, plots: PrismaPlots[]) => {
     const sortedActivities = [...activities].reverse()
     const generateCycleId = (plotId: number, startDate: Date) => {
         return `cycle-${plotId}-${startDate.getTime()}`
     }
+    const selectPlot = plots.filter(p => p.id === plotId)[0]
 
     const calculateCycles = () => {
         let currentCycle: ActivityCycle | null = null
@@ -85,6 +87,7 @@ export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: numb
                 currentCycle = {
                     id: generateCycleId(plotId, activity.date),
                     plotId: plotId,
+                    plot: selectPlot,
                     start: activity.date,
                     end: null,
                     activities: [activity]

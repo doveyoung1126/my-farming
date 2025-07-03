@@ -1,42 +1,107 @@
-// lib/seedTestData.ts
-import { PrismaClient, RecordCategory } from '@prisma/client';
+// prisma/seedTestData.ts
+import { PrismaClient, RecordCategory, CycleMarker, ActivityType, RecordCategoryType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// 财务记录类型配置（收入/支出）
-const FINANCIAL_TYPES = [
-  { name: '种子采购', category: 'expense' },
-  { name: '肥料购买', category: 'expense' },
-  { name: '设备租赁', category: 'expense' },
-  { name: '蔬菜销售', category: 'income' },
-  { name: '水果销售', category: 'income' },
-  { name: '政府补贴', category: 'income' },
-  { name: '农药支出', category: 'expense' },
-  { name: '运输收入', category: 'income' }
-];
-
-// 活动类型配置
-const ACTIVITY_TYPES = [
-  '整地',
-  '播种',
-  '灌溉',
-  '施肥',
-  '除草',
-  '收获',
-  '包装',
-  '运输'
-];
+// --- 配置数据 ---
 
 // 地块配置
-const PLOTS = [
-  { name: '北区A1', area: 5.2, crop: '西红柿' },
-  { name: '北区B2', area: 3.8, crop: '黄瓜' },
-  { name: '南区C3', area: 7.1, crop: '草莓' },
-  { name: '东区D4', area: 4.5, crop: '生菜' },
+const PLOTS_CONFIG = [
+  { name: 'A1-番茄试验田', area: 2.5 },
+  { name: 'B2-高效黄瓜棚', area: 4.0 },
+  { name: 'C3-有机草莓园', area: 3.2 },
+  { name: 'D4-水培生菜区', area: 1.8 },
+  { name: 'E5-备用空闲地', area: 5.0 },
 ];
 
-async function seedDatabase() {
-  // 清空现有测试数据
+// 作物类型
+const CROPS = ['番茄', '黄瓜', '草莓', '生菜', '辣椒'];
+
+// 活动类型配置 (包含周期标记)
+const ACTIVITY_TYPES_CONFIG = [
+  { name: '土地休整', cycleMarker: null },
+  { name: '播种育苗', cycleMarker: CycleMarker.START },
+  { name: '日常灌溉', cycleMarker: null },
+  { name: '营养施肥', cycleMarker: null },
+  { name: '病虫害防治', cycleMarker: null },
+  { name: '成熟采收', cycleMarker: CycleMarker.END },
+  { name: '产品包装', cycleMarker: null },
+  { name: '市场运输', cycleMarker: null },
+];
+
+// 财务类型配置 (关联到活动类型)
+const FINANCIAL_TYPES_CONFIG = [
+  // 周期开始成本
+  { name: '种子/种苗采购', category: 'expense', activityTypeName: '播种育苗' },
+  { name: '育苗基质', category: 'expense', activityTypeName: '播种育苗' },
+  // 生长过程成本
+  { name: '有机肥料', category: 'expense', activityTypeName: '营养施肥' },
+  { name: '复合肥料', category: 'expense', activityTypeName: '营养施肥' },
+  { name: '生物农药', category: 'expense', activityTypeName: '病虫害防治' },
+  { name: '灌溉水电费', category: 'expense', activityTypeName: '日常灌溉' },
+  // 收获及后续成本
+  { name: '雇佣采收人工', category: 'expense', activityTypeName: '成熟采收' },
+  { name: '包装材料', category: 'expense', activityTypeName: '产品包装' },
+  { name: '物流运输费', category: 'expense', activityTypeName: '市场运输' },
+  // 收入
+  { name: '一级果蔬销售', category: 'income', activityTypeName: '成熟采收' },
+  { name: '次级果蔬销售', category: 'income', activityTypeName: '成熟采收' },
+  // 其他
+  { name: '农机租赁', category: 'expense', activityTypeName: null },
+  { name: '政府项目补贴', category: 'income', activityTypeName: null },
+];
+
+// --- 全局变量，用于存储创建的类型 ---
+let activityTypes: ActivityType[] = [];
+let financialTypes: RecordCategoryType[] = [];
+
+// --- 辅助函数 ---
+
+/**
+ * 在指定范围内生成一个随机日期
+ * @param start 开始日期
+ * @param end 结束日期
+ * @returns 随机日期
+ */
+function randomDate(start: Date, end: Date): Date {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+/**
+ * 在数字范围内生成随机数
+ * @param min 最小值
+ * @param max 最大值
+ * @returns 随机数
+ */
+function randomNumber(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
+}
+
+/**
+ * 智能计算财务金额
+ * @param category 收入或支出
+ * @param plotArea 地块面积
+ * @returns 金额
+ */
+function calculateAmount(category: 'income' | 'expense', plotArea: number): number {
+  let baseValue = 0;
+  if (category === 'income') {
+    baseValue = randomNumber(800, 1500) * plotArea; // 收入与面积强相关
+  } else {
+    baseValue = randomNumber(50, 200) * plotArea; // 支出与面积弱相关
+  }
+  const amount = parseFloat(baseValue.toFixed(2));
+  return category === 'income' ? amount : -amount; // 支出为负数
+}
+
+
+// --- 主逻辑 ---
+
+async function main() {
+  console.log('🚀 开始填充测试数据...');
+
+  // 1. 清理数据库
+  console.log('🧹 清理旧数据...');
   await prisma.$transaction([
     prisma.record.deleteMany(),
     prisma.activity.deleteMany(),
@@ -45,93 +110,123 @@ async function seedDatabase() {
     prisma.recordCategoryType.deleteMany(),
   ]);
 
-  // 1. 创建财务记录类型
-  const recordTypes = [];
-  for (const { name, category } of FINANCIAL_TYPES) {
-    const type = await prisma.recordCategoryType.create({
-      data: {
-        name,
-        category: category as RecordCategory // 确保类型匹配
-      }
-    });
-    recordTypes.push(type);
-  }
+  // 2. 创建基础类型数据
+  console.log('🌱 创建基础类型...');
 
-  // 2. 创建活动类型
-  const activityTypes = [];
-  for (const name of ACTIVITY_TYPES) {
-    const type = await prisma.activityType.create({ data: { name } });
-    activityTypes.push(type);
-  }
+  // 创建活动类型并存入全局变量
+  activityTypes = await Promise.all(
+    ACTIVITY_TYPES_CONFIG.map(at => prisma.activityType.create({ data: at }))
+  );
+
+  // 创建财务类型并存入全局变量
+  financialTypes = await Promise.all(
+    FINANCIAL_TYPES_CONFIG.map(ft => prisma.recordCategoryType.create({
+      data: { name: ft.name, category: ft.category as RecordCategory }
+    }))
+  );
 
   // 3. 创建地块
-  const plots = [];
-  for (const plotData of PLOTS) {
-    const plot = await prisma.plot.create({ data: plotData });
-    plots.push(plot);
+  console.log('🏞️ 创建地块...');
+  const plots = await Promise.all(
+    PLOTS_CONFIG.map(p => prisma.plot.create({ data: p }))
+  );
+
+  // 4. 为每个地块创建生产周期和活动
+  console.log('🔄 创建生产周期和活动...');
+  for (const plot of plots) {
+    // E5地块保持空闲
+    if (plot.name.includes('空闲')) {
+      console.log(`   - 地块 ${plot.name} 保持空闲.`);
+      continue;
+    }
+
+    const crop = CROPS[Math.floor(Math.random() * CROPS.length)];
+    await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
+    console.log(`   - 为地块 ${plot.name} 分配作物: ${crop}`);
+
+    // 为每个地块创建2个周期 (1个完成, 1个进行中)
+    for (let i = 0; i < 2; i++) {
+      const isCompletedCycle = i === 0;
+      const cycleYear = new Date().getFullYear() - (1 - i); // 第一个周期是去年的
+
+      // a. 定义周期的开始和结束活动类型
+      const startType = activityTypes.find(at => at.cycleMarker === CycleMarker.START)!;
+      const endType = activityTypes.find(at => at.cycleMarker === CycleMarker.END)!;
+
+      // b. 创建周期开始活动
+      const startDate = randomDate(new Date(`${cycleYear}-03-01`), new Date(`${cycleYear}-04-15`));
+      await createActivity(plot.id, crop, startType.id, startDate, plot.area);
+
+      // c. 创建生长过程中的活动 (3-5个)
+      const growthActivityCount = Math.floor(randomNumber(3, 5));
+      const growthTypes = activityTypes.filter(at => at.cycleMarker === null && !['产品包装', '市场运输'].includes(at.name));
+      for (let j = 0; j < growthActivityCount; j++) {
+        const activityDate = new Date(startDate.getTime() + randomNumber(15, 75) * 24 * 60 * 60 * 1000);
+        const randomType = growthTypes[Math.floor(Math.random() * growthTypes.length)];
+        await createActivity(plot.id, crop, randomType.id, activityDate, plot.area);
+      }
+
+      // d. 如果是已完成的周期，则创建结束活动和后续活动
+      if (isCompletedCycle) {
+        const endDate = new Date(startDate.getTime() + randomNumber(90, 120) * 24 * 60 * 60 * 1000);
+        await createActivity(plot.id, crop, endType.id, endDate, plot.area);
+
+        // 创建包装和运输活动
+        const packagingType = activityTypes.find(at => at.name === '产品包装')!;
+        const transportType = activityTypes.find(at => at.name === '市场运输')!;
+        await createActivity(plot.id, crop, packagingType.id, new Date(endDate.getTime() + 1 * 24 * 60 * 60 * 1000), plot.area);
+        await createActivity(plot.id, crop, transportType.id, new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000), plot.area);
+        console.log(`     - 为 ${plot.name} 创建了一个于 ${cycleYear} 年完成的周期.`);
+      } else {
+        console.log(`     - 为 ${plot.name} 创建了一个当前正在进行的周期.`);
+      }
+    }
   }
 
-  // 4. 创建农业活动及关联财务记录
-  const activities = [];
-  const currentDate = new Date();
+  console.log('✅ 测试数据填充成功!');
+}
 
-  for (let i = 0; i < 30; i++) { // 生成30个活动
-    const plot = plots[Math.floor(Math.random() * plots.length)];
-    const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
+/**
+ * 创建一个活动及其关联的财务记录
+ * @param plotId 地块ID
+ * @param crop 作物
+ * @param activityTypeId 活动类型ID
+ * @param date 活动日期
+ * @param plotArea 地块面积
+ */
+async function createActivity(plotId: number, crop: string, activityTypeId: number, date: Date, plotArea: number) {
+  const activityTypeInDb = activityTypes.find(t => t.id === activityTypeId);
+  if (!activityTypeInDb) return;
 
-    const activityDate = new Date(currentDate);
-    activityDate.setDate(activityDate.getDate() - Math.floor(Math.random() * 60)); // 过去60天内
+  // 查找与此活动类型关联的财务类型
+  const relatedFinancialTypes = FINANCIAL_TYPES_CONFIG.filter(ft => ft.activityTypeName === activityTypeInDb.name);
 
-    // 创建活动
-    const activity = await prisma.activity.create({
-      data: {
-        date: activityDate,
-        plot: { connect: { id: plot.id } },
-        type: { connect: { id: activityType.id } },
-        records: {
-          create: generateFinancialRecords(recordTypes, activityDate)
-        }
+  await prisma.activity.create({
+    data: {
+      plotId,
+      crop,
+      activityTypeId,
+      date,
+      records: {
+        create: relatedFinancialTypes.map(ft => {
+          const financialType = financialTypes.find(t => t.name === ft.name)!;
+          return {
+            recordTypeId: financialType.id,
+            amount: calculateAmount(ft.category as 'income' | 'expense', plotArea),
+            description: `${crop}的${ft.name}`,
+            date: date,
+          };
+        }),
       },
-      include: { records: true }
-    });
-
-    activities.push(activity);
-  }
-
-  console.log(`✅ 测试数据生成完成:
-  地块: ${plots.length}
-  活动类型: ${activityTypes.length}
-  财务类型: ${recordTypes.length}
-  农业活动: ${activities.length}
-  财务记录: ${activities.reduce((sum, a) => sum + a.records.length, 0)}
-  `);
+    },
+  });
 }
 
-// 生成财务记录（收入/支出）
-function generateFinancialRecords(recordTypes: any[], activityDate: Date) {
-  const records = [];
-  const recordCount = Math.floor(Math.random() * 3) + 1;
-
-  for (let j = 0; j < recordCount; j++) {
-    const type = recordTypes[Math.floor(Math.random() * recordTypes.length)];
-    const isIncome = type.category === 'income';
-
-    records.push({
-      amount: isIncome
-        ? parseFloat((Math.random() * 5000 + 1000).toFixed(2))
-        : parseFloat((Math.random() * 1000 + 50).toFixed(2)) * -1, // 支出记为负数
-      date: new Date(activityDate.getTime() + Math.random() * 86400000),
-      type: { connect: { id: type.id } },
-      description: `${isIncome ? '收入' : '支出'}: ${type.name}`
-    });
-  }
-
-  return records;
-}
-
-seedDatabase()
-  .catch(e => {
-    console.error('测试数据生成失败:', e);
+main()
+  .catch((e) => {
+    console.error('❌ 数据填充过程中发生错误:', e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

@@ -4,11 +4,9 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 const navItems = [
-    { href: '/dashboard', icon: '🏠', label: '概览', replace: true },
-    { href: '/records', icon: '💰', label: '财务', replace: true },
-    { href: '/activities', icon: '🌱', label: '农事', replace: true },
-    { href: '/alerts', icon: '🔔', label: '提醒', replace: true },
-    { href: '/settings', icon: '⚙️', label: '设置', replace: true }
+    { href: '/newdashboard', icon: '🏠', label: '总览', replace: true },
+    { href: '/', icon: '➕', label: '快捷操作', replace: true },
+    { href: '/reports', icon: '📊', label: '分析报告', replace: true },
 ];
 
 export default function BottomNav() {

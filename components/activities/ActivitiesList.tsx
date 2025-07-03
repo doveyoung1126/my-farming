@@ -1,5 +1,6 @@
 // components/ActivitiesList.tsx
 import { ActivityWithFinancials } from '@/lib/types'
+import { calculateFinancials } from '@/lib/utils';
 import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap } from 'lucide-react';
 
 // 活动类型图标映射
@@ -23,9 +24,7 @@ const ActivitiesList = ({
         <div className="space-y-3 mb-20">
             {activities.map((activity) => {
                 // 获取该活动的总收支
-                const totalIncome = activity.records?.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0) || 0;
-                const totalExpense = activity.records?.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0) || 0;
-                const netAmount = totalIncome + totalExpense;
+                const { totalIncome, totalExpense, netAmount } = calculateFinancials(activity);
 
                 // 获取活动类型图标
                 const activityIcon = activityIcons[activity.type] || activityIcons['默认'];
