@@ -155,7 +155,8 @@ async function main() {
 
       // b. 创建周期开始活动
       const startDate = randomDate(new Date(`${cycleYear}-03-01`), new Date(`${cycleYear}-04-15`));
-      await createActivity(plot.id, crop, startType.id, startDate, plot.area);
+      const budget = randomNumber(2000, 5000) * plot.area; // 根据面积估算预算
+      await createActivity(plot.id, crop, startType.id, startDate, plot.area, budget);
 
       // c. 创建生长过程中的活动 (3-5个)
       const growthActivityCount = Math.floor(randomNumber(3, 5));
@@ -194,7 +195,7 @@ async function main() {
  * @param date 活动日期
  * @param plotArea 地块面积
  */
-async function createActivity(plotId: number, crop: string, activityTypeId: number, date: Date, plotArea: number) {
+async function createActivity(plotId: number, crop: string, activityTypeId: number, date: Date, plotArea: number, budget?: number) {
   const activityTypeInDb = activityTypes.find(t => t.id === activityTypeId);
   if (!activityTypeInDb) return;
 
@@ -207,6 +208,7 @@ async function createActivity(plotId: number, crop: string, activityTypeId: numb
       crop,
       activityTypeId,
       date,
+      budget, // <--- 添加预算字段
       records: {
         create: relatedFinancialTypes.map(ft => {
           const financialType = financialTypes.find(t => t.name === ft.name)!;

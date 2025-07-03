@@ -38,6 +38,7 @@ export const getAllActiviesDetails = async () => {
     function transformActivity(activity: PrismaActivityWithFinancials): ActivityWithFinancials {
         return {
             id: activity.id,
+            budget: activity.budget,
             type: activity.type.name,
             cycleMarker: activity.type.cycleMarker,
             crop: activity.crop,
@@ -89,6 +90,7 @@ export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: numb
                     plotId: plotId,
                     plot: selectPlot,
                     start: activity.date,
+                    budget: activity.budget,
                     end: null,
                     activities: [activity]
                 };

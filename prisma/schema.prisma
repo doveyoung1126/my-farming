@@ -53,6 +53,7 @@ model Activity {
   plot        Plot              @relation(fields: [plotId], references: [id])
   plotId      Int
   crop        String?           // 快照：记录本次活动发生时，地块上种植的作物，以保证历史准确性
+  budget      Float?            // 可选：如果此活动是周期的开始，则可以设置预算
   records     Record[]    
 }
 

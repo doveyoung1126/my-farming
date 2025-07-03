@@ -7,6 +7,10 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const summary = getActivitiesRecordsSummary(cycle.activities);
     const days = Math.floor((new Date().getTime() - cycle.start.getTime()) / (1000 * 60 * 60 * 24));
 
+    // 计算预算进度条的百分比
+    const budgetProgress = cycle.budget ? (Math.abs(summary.cycleExpense) / cycle.budget) * 100 : 0;
+    const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
+
     return (
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             {/* Card Header */}
@@ -28,11 +32,14 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                 <div>
                     <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
                         <span>已投入</span>
-                        <span className="font-semibold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</span>
+                        <span className="font-semibold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}{displayBudget}</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2.5">
-                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, (Math.abs(summary.cycleExpense) / 500) * 100)}%` }}></div>
+                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, budgetProgress)}%` }}></div>
                     </div>
+                    {budgetProgress > 100 && (
+                        <p className="text-xs text-red-500 mt-1">已超出预算！</p>
+                    )}
                 </div>
                 <div className="text-xs text-slate-400 pt-2">
                     最近操作: {cycle.activities[cycle.activities.length - 1]?.type || '无'}

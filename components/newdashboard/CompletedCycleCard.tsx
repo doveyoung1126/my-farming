@@ -7,6 +7,10 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const summary = getActivitiesRecordsSummary(cycle.activities);
     const isProfitable = summary.cycleProfit >= 0;
 
+    // 预算信息
+    const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
+    const budgetStatus = cycle.budget ? (Math.abs(summary.cycleExpense) <= cycle.budget ? '✅ 预算内' : '❗ 超预算') : '';
+
     return (
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             <div className="p-4">
@@ -33,7 +37,8 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                     </div>
                     <div>
                         <p className="text-xs text-slate-500">总支出</p>
-                        <p className="font-semibold">¥{Math.abs(summary.cycleExpense).toLocaleString()}</p>
+                        <p className="font-semibold">¥{Math.abs(summary.cycleExpense).toLocaleString()}{displayBudget}</p>
+                        {budgetStatus && <p className="text-xs text-slate-500 mt-0.5">{budgetStatus}</p>}
                     </div>
                     <div>
                         <p className="text-xs text-slate-500">回报率</p>

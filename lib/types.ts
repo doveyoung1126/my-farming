@@ -10,7 +10,8 @@ export interface ActivityBasic {
     date: Date;
     plotName: string;    // 地块名称
     plotArea: number;    // 地块面积
-    plotId: number
+    plotId: number;
+    budget?: number | null;     // 新增：活动预算，仅在周期开始活动中存在
 }
 
 // 财务记录类型
@@ -42,6 +43,7 @@ export interface ActivityCycle {
     plotId: number
     start: Date
     end: Date | null
+    budget?: number | null
     activities: ActivityWithFinancials[];
     plot: PrismaPlots; // 添加 plot 属性
 }
