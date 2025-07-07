@@ -1,9 +1,8 @@
 // app/plots/[id]/page.tsx
 import { getPlotDetails } from "@/lib/data";
 import { notFound } from "next/navigation";
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { PlotDetailClient } from "@/components/plots/PlotDetailClient";
+import { PlotDetailHeader } from "@/components/plots/PlotDetailHeader";
 
 export default async function PlotDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -22,17 +21,11 @@ export default async function PlotDetailPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="h-full flex flex-col bg-slate-50 pb-16">
-            <header className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center">
-                <Link href="/plots" className="mr-4 p-2 rounded-full hover:bg-slate-100" replace>
-                    <ArrowLeft className="w-5 h-5 text-slate-600" />
-                </Link>
-                <div>
-                    <h1 className="text-xl font-bold text-gray-800">{plot.name}</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        面积: {plot.area} 亩 {plot.crop && `· 当前作物: ${plot.crop}`}
-                    </p>
-                </div>
-            </header>
+            <PlotDetailHeader
+                plotName={plot.name}
+                plotArea={plot.area}
+                currentCrop={plot.crop}
+            />
 
             <main className="flex-1 overflow-y-auto">
                 {/* 地块汇总数据 */}

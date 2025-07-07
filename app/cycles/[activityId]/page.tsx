@@ -1,8 +1,7 @@
 import { getCycleDetailsById, getActivitiesRecordsSummary } from "@/lib/data";
 import { notFound } from "next/navigation";
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { CycleDetailClient } from "@/components/cycles/CycleDetailClient";
+import { CycleDetailHeader } from "@/components/cycles/CycleDetailHeader";
 
 export default async function CycleDetailPage({ params }: { params: Promise<{ activityId: string }> }) {
     const { activityId } = await params
@@ -21,17 +20,12 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
 
     return (
         <div className="h-full flex flex-col bg-slate-50 pb-16">
-            <header className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center">
-                <Link href="/newdashboard" className="mr-4 p-2 rounded-full hover:bg-slate-100" replace>
-                    <ArrowLeft className="w-5 h-5 text-slate-600" />
-                </Link>
-                <div>
-                    <h1 className="text-xl font-bold text-gray-800">{cycle.plot.name} - {cycle.plot.crop}</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {cycle.start.toLocaleDateString()} - {cycle.end ? cycle.end.toLocaleDateString() : '进行中'}
-                    </p>
-                </div>
-            </header>
+            <CycleDetailHeader 
+                plotName={cycle.plot.name}
+                crop={cycle.plot.crop}
+                startDate={cycle.start}
+                endDate={cycle.end}
+            />
 
             <main className="flex-1 overflow-y-auto">
                 {/* 周期摘要卡片 */}
@@ -53,13 +47,13 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
                                 </span>
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2.5">
-                                <div
+                                <div 
                                     className={`h-2.5 rounded-full ${(summary.cycleExpense > (cycle.budget || 0)) ? 'bg-red-500' : 'bg-emerald-500'}`}
                                     style={{ width: `${Math.min(100, (Math.abs(summary.cycleExpense) / (cycle.budget || 1)) * 100)}%` }}
                                 ></div>
                             </div>
                             <p className={`text-xs mt-1.5 text-right ${(summary.cycleExpense > (cycle.budget || 0)) ? 'text-red-500' : 'text-slate-500'}`}>
-                                {(cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
+                                { (cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
                             </p>
                         </div>
                     )}
