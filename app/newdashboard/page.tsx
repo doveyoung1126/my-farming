@@ -4,6 +4,7 @@ import { ActivityCycle, PrismaPlots, ActivityWithFinancials } from '@/lib/types'
 import { OngoingCycleCard } from '@/components/newdashboard/OngoingCycleCard';
 import { CompletedCycleCard } from '@/components/newdashboard/CompletedCycleCard';
 import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function NewDashboardPage() {
 
@@ -30,6 +31,24 @@ export default async function NewDashboardPage() {
                     </button>
                 </div>
             </header>
+
+            {/* 地块概览 */}
+            <Link href="/plots" className="block px-4 pt-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                        <p className="text-2xl font-bold text-slate-800">{plots.length}</p>
+                        <p className="text-xs text-slate-500">地块总数</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                        <p className="text-2xl font-bold text-emerald-600">{plots.filter(p => p.crop).length}</p>
+                        <p className="text-xs text-slate-500">运营中</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                        <p className="text-2xl font-bold text-slate-800">{plots.reduce((acc, p) => acc + p.area, 0).toFixed(1)}</p>
+                        <p className="text-xs text-slate-500">总面积 (亩)</p>
+                    </div>
+                </div>
+            </Link>
 
             <main className="p-4 space-y-6">
                 {/* Ongoing Cycles Section */}

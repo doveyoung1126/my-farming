@@ -210,9 +210,60 @@ export const getRecordsWithActivity = async (date1?: Date, date2?: Date): Promis
         throw new Error('无法获取财务数据')
     }
     finally {
-        await prisma.$disconnect()
+        await prisma.$disconnect();
     }
-}
+};
+
+export const getPlotDetails = async (plotId: number) => {
+    try {
+        const plot = await prisma.plot.findUnique({
+            where: { id: plotId },
+        });
+
+        if (!plot) {
+            return null;
+        }
+
+        const activitiesOnPlot: PrismaActivityWithFinancials[] = await prisma.activity.findMany({
+            where: { plotId: plotId },
+            include: {
+                type: true,
+                plot: true,
+                records: {
+                    include: {
+                        type: true
+                    }
+                }
+            },
+            orderBy: {
+                date: 'desc'
+            }
+        });
+
+        const transformedActivities = activitiesOnPlot.map(transformActivity);
+
+        // 获取所有地块，因为 getPlotCycles 需要
+        const allPlots = await prisma.plot.findMany();
+
+        const cyclesOnPlot = getPlotCycles(transformedActivities, plotId, allPlots);
+
+        // 计算该地块所有活动的汇总财务数据
+        const plotSummary = getActivitiesRecordsSummary(transformedActivities);
+
+        return {
+            plot,
+            activities: transformedActivities,
+            cycles: cyclesOnPlot,
+            summary: plotSummary,
+        };
+
+    } catch (error) {
+        console.error('获取地块详情失败:', error);
+        throw new Error('无法获取地块详情');
+    } finally {
+        await prisma.$disconnect();
+    }
+};
 
 export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycle | null> => {
     try {
