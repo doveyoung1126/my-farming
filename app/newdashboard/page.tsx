@@ -3,8 +3,8 @@ import { getAllActiviesDetails, getPlots, getPlotCycles } from '@/lib/data';
 import { ActivityCycle, PrismaPlots, ActivityWithFinancials } from '@/lib/types';
 import { OngoingCycleCard } from '@/components/newdashboard/OngoingCycleCard';
 import { CompletedCycleCard } from '@/components/newdashboard/CompletedCycleCard';
-import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { DashboardActions } from '@/components/newdashboard/DashboardActions';
 
 export default async function NewDashboardPage() {
 
@@ -25,10 +25,7 @@ export default async function NewDashboardPage() {
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-slate-800">我的农场</h1>
-                    <button className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-emerald-700 transition-colors">
-                        <Plus className="w-5 h-5" />
-                        快捷操作
-                    </button>
+                    <DashboardActions />
                 </div>
             </header>
 

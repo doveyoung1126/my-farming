@@ -6,7 +6,6 @@ import clsx from 'clsx';
 const navItems = [
     { href: '/newdashboard', icon: '🏠', label: '总览', replace: true },
     { href: '/plots', icon: '🏞️', label: '地块', replace: true }, // 新增地块导航项
-    { href: '/', icon: '➕', label: '快捷操作', replace: true },
     { href: '/reports', icon: '📊', label: '分析报告', replace: true },
 ];
 
