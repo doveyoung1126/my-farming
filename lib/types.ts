@@ -79,3 +79,5 @@ export type PrismaActivityWithFinancials = Prisma.ActivityGetPayload<typeof acti
 export type PrismaPlots = Prisma.PlotGetPayload<{}>
 export type PrismaRecords = Prisma.RecordGetPayload<typeof recordWithActivity>
 export type PrismaRecordsWhere = Prisma.RecordWhereInput
+export type ActivityType = Prisma.ActivityTypeGetPayload<{}>
+export type RecordCategoryType = Prisma.RecordCategoryTypeGetPayload<{}>

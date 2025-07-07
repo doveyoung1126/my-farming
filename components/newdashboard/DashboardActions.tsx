@@ -4,15 +4,16 @@
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ActionModal } from '@/components/common/ActionModal';
+import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
-export function DashboardActions() {
+export function DashboardActions({ activityTypes, plots, recordCategoryTypes }: {
+    activityTypes: ActivityType[];
+    plots: PrismaPlots[];
+    recordCategoryTypes: RecordCategoryType[];
+}) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const handleActionSelect = (action: 'addActivity' | 'addFinancial' | 'addPlot') => {
-        setIsModalOpen(false);
-        // TODO: 根据选择的动作导航到相应的表单或打开新的模态框
-        console.log('Selected action:', action);
-    };
+    const router = useRouter();
 
     return (
         <>
@@ -27,7 +28,10 @@ export function DashboardActions() {
             <ActionModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
-                onSelectAction={handleActionSelect} 
+                activityTypes={activityTypes}
+                plots={plots}
+                recordCategoryTypes={recordCategoryTypes}
+                routerRefresh={router.refresh}
             />
         </>
     );

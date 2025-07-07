@@ -1,15 +1,19 @@
 // app/newdashboard/page.tsx
-import { getAllActiviesDetails, getPlots, getPlotCycles } from '@/lib/data';
-import { ActivityCycle, PrismaPlots, ActivityWithFinancials } from '@/lib/types';
+import { getAllActiviesDetails, getPlots, getPlotCycles, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
+import { ActivityCycle, PrismaPlots, ActivityWithFinancials, ActivityType, RecordCategoryType } from '@/lib/types';
 import { OngoingCycleCard } from '@/components/newdashboard/OngoingCycleCard';
 import { CompletedCycleCard } from '@/components/newdashboard/CompletedCycleCard';
 import Link from 'next/link';
-import { DashboardActions } from '@/components/newdashboard/DashboardActions';
+import { DashboardActions } from '@/components/newdashboard/DashboardActions'; // 导入新的客户端组件
 
 export default async function NewDashboardPage() {
 
-    const plots: PrismaPlots[] = await getPlots();
-    const activities: ActivityWithFinancials[] = await getAllActiviesDetails();
+    const [plots, activities, activityTypes, recordCategoryTypes] = await Promise.all([
+        getPlots(),
+        getAllActiviesDetails(),
+        getActivityTypes(),
+        getRecordCategoryTypes(),
+    ]);
 
     const allCycles: ActivityCycle[] = plots.flatMap(plot => {
         const plotActivities = activities.filter(a => a.plotId === plot.id);
@@ -25,7 +29,11 @@ export default async function NewDashboardPage() {
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-slate-800">我的农场</h1>
-                    <DashboardActions />
+                    <DashboardActions 
+                        activityTypes={activityTypes}
+                        plots={plots}
+                        recordCategoryTypes={recordCategoryTypes}
+                    /> {/* 使用新的客户端组件 */}
                 </div>
             </header>
 
@@ -76,6 +84,7 @@ export default async function NewDashboardPage() {
                     )}
                 </section>
             </main>
+
         </div>
     );
 }

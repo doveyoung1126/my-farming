@@ -214,6 +214,30 @@ export const getRecordsWithActivity = async (date1?: Date, date2?: Date): Promis
     }
 };
 
+export const getActivityTypes = async () => {
+    try {
+        const activityTypes = await prisma.activityType.findMany();
+        return activityTypes;
+    } catch (error) {
+        console.error('获取活动类型失败:', error);
+        throw new Error('无法获取活动类型');
+    } finally {
+        await prisma.$disconnect();
+    }
+};
+
+export const getRecordCategoryTypes = async () => {
+    try {
+        const recordCategoryTypes = await prisma.recordCategoryType.findMany();
+        return recordCategoryTypes;
+    } catch (error) {
+        console.error('获取财务记录类型失败:', error);
+        throw new Error('无法获取财务记录类型');
+    } finally {
+        await prisma.$disconnect();
+    }
+};
+
 export const getPlotDetails = async (plotId: number) => {
     try {
         const plot = await prisma.plot.findUnique({
