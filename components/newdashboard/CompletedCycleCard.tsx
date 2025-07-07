@@ -1,5 +1,7 @@
 // components/newdashboard/CompletedCycleCard.tsx
 'use client';
+
+import Link from "next/link";
 import { ActivityCycle } from "@/lib/types";
 import { getActivitiesRecordsSummary } from "@/lib/data";
 
@@ -11,8 +13,12 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
     const budgetStatus = cycle.budget ? (Math.abs(summary.cycleExpense) <= cycle.budget ? '✅ 预算内' : '❗ 超预算') : '';
 
+    // 找到周期的起始活动ID
+    const cycleStartActivity = cycle.activities.find(a => a.cycleMarker === 'START');
+    if (!cycleStartActivity) return null; // 如果没有起始活动，则不渲染卡片
+
     return (
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
+        <Link href={`/cycles/${cycleStartActivity.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
                     <div>
@@ -47,10 +53,10 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                 </div>
             </div>
             <div className="bg-slate-50 px-4 py-2 border-t border-slate-100 text-center">
-                 <button className="text-sm font-medium text-slate-500 hover:text-slate-700">
+                <div className="text-sm font-medium text-slate-500 hover:text-slate-700">
                     查看详情 &gt;
-                </button>
+                </div>
             </div>
-        </div>
+        </Link>
     );
 };

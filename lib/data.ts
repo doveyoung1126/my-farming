@@ -8,6 +8,28 @@ import {
 } from './types'
 import prisma from './db'
 
+function transformActivity(activity: PrismaActivityWithFinancials): ActivityWithFinancials {
+    return {
+        id: activity.id,
+        budget: activity.budget,
+        type: activity.type.name,
+        cycleMarker: activity.type.cycleMarker,
+        crop: activity.crop,
+        date: activity.date,
+        plotId: activity.plot.id,
+        plotName: activity.plot.name,
+        plotArea: activity.plot.area,
+        records: activity.records.map(record => ({
+            id: record.id,
+            amount: record.amount,
+            description: record.description,
+            recordType: record.type.category,
+            recordCategory: record.type.category,
+            date: record.date
+        }))
+    }
+}
+
 export const getAllActiviesDetails = async () => {
     try {
         const activities: PrismaActivityWithFinancials[] = await prisma.activity.findMany({
@@ -33,28 +55,6 @@ export const getAllActiviesDetails = async () => {
         throw new Error('无法获取活动数据')
     } finally {
         await prisma.$disconnect()
-    }
-
-    function transformActivity(activity: PrismaActivityWithFinancials): ActivityWithFinancials {
-        return {
-            id: activity.id,
-            budget: activity.budget,
-            type: activity.type.name,
-            cycleMarker: activity.type.cycleMarker,
-            crop: activity.crop,
-            date: activity.date,
-            plotId: activity.plot.id,
-            plotName: activity.plot.name,
-            plotArea: activity.plot.area,
-            records: activity.records.map(record => ({
-                id: record.id,
-                amount: record.amount,
-                description: record.description,
-                recordType: record.type.category,
-                recordCategory: record.type.category,
-                date: record.date
-            }))
-        }
     }
 }
 
@@ -213,3 +213,77 @@ export const getRecordsWithActivity = async (date1?: Date, date2?: Date): Promis
         await prisma.$disconnect()
     }
 }
+
+export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycle | null> => {
+    try {
+        // 1. 找到周期的起始活动
+        const startActivity = await prisma.activity.findUnique({
+            where: { id: cycleId },
+            include: {
+                type: true,
+                plot: true,
+            }
+        });
+
+        if (!startActivity || startActivity.type.cycleMarker !== 'START') {
+            console.error('未找到对应的周期起始活动');
+            return null;
+        }
+
+        // 2. 找到下一个周期的起始活动，以确定当前周期的结束时间
+        const nextCycleStart = await prisma.activity.findFirst({
+            where: {
+                plotId: startActivity.plotId,
+                type: { cycleMarker: 'START' },
+                date: { gt: startActivity.date },
+            },
+            orderBy: {
+                date: 'asc'
+            }
+        });
+
+        const endDate = nextCycleStart ? new Date(nextCycleStart.date) : null;
+
+        // 3. 查询此周期内的所有活动
+        const activitiesInCycle = await prisma.activity.findMany({
+            where: {
+                plotId: startActivity.plotId,
+                date: {
+                    gte: startActivity.date,
+                    ...(endDate && { lt: endDate })
+                }
+            },
+            include: {
+                type: true,
+                plot: true,
+                records: {
+                    include: {
+                        type: true
+                    }
+                }
+            },
+            orderBy: {
+                date: 'asc'
+            }
+        });
+
+        // 4. 构建并返回周期对象
+        const cycle: ActivityCycle = {
+            id: `cycle-${startActivity.plotId}-${startActivity.date.getTime()}`,
+            plotId: startActivity.plotId,
+            plot: startActivity.plot,
+            start: startActivity.date,
+            end: endDate,
+            budget: startActivity.budget,
+            activities: activitiesInCycle.map(transformActivity),
+        };
+
+        return cycle;
+
+    } catch (error) {
+        console.error('获取周期详情失败:', error);
+        throw new Error('无法获取周期详情');
+    } finally {
+        await prisma.$disconnect();
+    }
+};

@@ -1,5 +1,7 @@
 // components/newdashboard/OngoingCycleCard.tsx
 'use client';
+
+import Link from "next/link";
 import { ActivityCycle } from "@/lib/types";
 import { getActivitiesRecordsSummary } from "@/lib/data";
 
@@ -11,8 +13,12 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const budgetProgress = cycle.budget ? (Math.abs(summary.cycleExpense) / cycle.budget) * 100 : 0;
     const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
 
+    // 找到周期的起始活动ID
+    const cycleStartActivity = cycle.activities.find(a => a.cycleMarker === 'START');
+    if (!cycleStartActivity) return null; // 如果没有起始活动，则不渲染卡片
+
     return (
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
+        <Link href={`/cycles/${cycleStartActivity.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             {/* Card Header */}
             <div className="p-4 border-b border-slate-100">
                 <div className="flex justify-between items-start">
@@ -48,10 +54,10 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
 
             {/* Card Footer */}
             <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
-                <button className="w-full text-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                <div className="w-full text-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
                     + 添加记录
-                </button>
+                </div>
             </div>
-        </div>
+        </Link>
     );
 };
