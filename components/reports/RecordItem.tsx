@@ -62,7 +62,7 @@ export function RecordItem({ record }: { record: FinancialWithActivity }) {
                     {/* 日期 */}
                     <div className="mt-1">
                         <span className="text-xs text-gray-400" suppressHydrationWarning>
-                            {new Date(record.date).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
+                            {new Date(record.date).toLocaleDateString('zh-CN', { year: "numeric", month: 'numeric', day: 'numeric' })}
                         </span>
                     </div>
                 </div>
