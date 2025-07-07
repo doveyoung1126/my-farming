@@ -263,7 +263,7 @@ export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycl
                 }
             },
             orderBy: {
-                date: 'asc'
+                date: 'desc'
             }
         });
 

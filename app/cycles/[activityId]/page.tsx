@@ -1,5 +1,8 @@
-import { getCycleDetailsById } from "@/lib/data";
+import { getCycleDetailsById, getActivitiesRecordsSummary } from "@/lib/data";
 import { notFound } from "next/navigation";
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { CycleDetailClient } from "@/components/cycles/CycleDetailClient";
 
 export default async function CycleDetailPage({ params }: { params: Promise<{ activityId: string }> }) {
     const { activityId } = await params
@@ -14,22 +17,56 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
         notFound();
     }
 
+    const summary = getActivitiesRecordsSummary(cycle.activities);
+
     return (
-        <div>
-            <h1>Cycle Details</h1>
-            <p>Cycle ID: {cycle.id}</p>
-            <p>Plot: {cycle.plot.name}</p>
-            <p>Start Date: {cycle.start.toLocaleDateString()}</p>
-            <p>End Date: {cycle.end ? cycle.end.toLocaleDateString() : 'Ongoing'}</p>
-            <p>Budget: {cycle.budget}</p>
-            <h2>Activities</h2>
-            <ul>
-                {cycle.activities.map(activity => (
-                    <li key={activity.id}>
-                        {activity.date.toLocaleDateString()} - {activity.type}
-                    </li>
-                ))}
-            </ul>
+        <div className="h-full flex flex-col bg-slate-50 pb-16">
+            <header className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center">
+                <Link href="/newdashboard" className="mr-4 p-2 rounded-full hover:bg-slate-100">
+                    <ArrowLeft className="w-5 h-5 text-slate-600" />
+                </Link>
+                <div>
+                    <h1 className="text-xl font-bold text-gray-800">{cycle.plot.name} - {cycle.plot.crop}</h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {cycle.start.toLocaleDateString()} - {cycle.end ? cycle.end.toLocaleDateString() : '进行中'}
+                    </p>
+                </div>
+            </header>
+
+            <main className="flex-1 overflow-y-auto">
+                {/* 周期摘要卡片 */}
+                <div className="p-4">
+                    {cycle.end ? (
+                        // 已完成周期的 "成绩单" 视图
+                        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-lg overflow-hidden shadow">
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.cycleIncome.toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.cycleProfit) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{summary.cycleProfit.toLocaleString()}</p></div>
+                        </div>
+                    ) : (
+                        // 进行中周期的 "预算控制器" 视图
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="flex justify-between items-center text-sm text-slate-600 mb-1">
+                                <span>预算执行</span>
+                                <span className={`font-bold ${summary.cycleExpense > (cycle.budget || 0) ? 'text-red-600' : 'text-slate-800'}`}>
+                                    ¥{Math.abs(summary.cycleExpense).toLocaleString()} / <span className="text-xs">¥{(cycle.budget || 0).toLocaleString()}</span>
+                                </span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-2.5">
+                                <div 
+                                    className={`h-2.5 rounded-full ${(summary.cycleExpense > (cycle.budget || 0)) ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                    style={{ width: `${Math.min(100, (Math.abs(summary.cycleExpense) / (cycle.budget || 1)) * 100)}%` }}
+                                ></div>
+                            </div>
+                            <p className={`text-xs mt-1.5 text-right ${(summary.cycleExpense > (cycle.budget || 0)) ? 'text-red-500' : 'text-slate-500'}`}>
+                                { (cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                <CycleDetailClient cycle={cycle} />
+            </main>
         </div>
     );
 }

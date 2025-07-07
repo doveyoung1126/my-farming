@@ -9,9 +9,12 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const summary = getActivitiesRecordsSummary(cycle.activities);
     const days = Math.floor((new Date().getTime() - cycle.start.getTime()) / (1000 * 60 * 60 * 24));
 
-    // 计算预算进度条的百分比
-    const budgetProgress = cycle.budget ? (Math.abs(summary.cycleExpense) / cycle.budget) * 100 : 0;
-    const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
+    // 预算相关计算
+    const hasBudget = typeof cycle.budget === 'number' && cycle.budget > 0;
+    const expense = Math.abs(summary.cycleExpense);
+    const budgetProgress = hasBudget ? (expense / cycle.budget!) * 100 : 0;
+    const remainingBudget = hasBudget ? cycle.budget! - expense : 0;
+    const isOverBudget = hasBudget && expense > cycle.budget!;
 
     // 找到周期的起始活动ID
     const cycleStartActivity = cycle.activities.find(a => a.cycleMarker === 'START');
@@ -34,20 +37,33 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
             </div>
 
             {/* Card Body */}
-            <div className="p-4 space-y-3">
-                <div>
-                    <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
-                        <span>已投入</span>
-                        <span className="font-semibold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}{displayBudget}</span>
+            <div className="p-4 space-y-4">
+                {hasBudget ? (
+                    <div>
+                        <div className="flex justify-between items-center text-sm text-slate-600 mb-1">
+                            <span>预算执行</span>
+                            <span className={`font-bold ${isOverBudget ? 'text-red-600' : 'text-slate-800'}`}>
+                                ¥{expense.toLocaleString()} / <span className="text-xs">¥{cycle.budget!.toLocaleString()}</span>
+                            </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2.5">
+                            <div 
+                                className={`h-2.5 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                style={{ width: `${Math.min(100, budgetProgress)}%` }}
+                            ></div>
+                        </div>
+                        <p className={`text-xs mt-1.5 text-right ${isOverBudget ? 'text-red-500' : 'text-slate-500'}`}>
+                            {isOverBudget ? `已超支 ¥${Math.abs(remainingBudget).toLocaleString()}` : `剩余 ¥${remainingBudget.toLocaleString()}`}
+                        </p>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, budgetProgress)}%` }}></div>
+                ) : (
+                    <div className="text-center p-3 bg-slate-100 rounded-lg">
+                        <p className="font-medium text-slate-700">已投入 ¥{expense.toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 mt-1">未设置预算</p>
                     </div>
-                    {budgetProgress > 100 && (
-                        <p className="text-xs text-red-500 mt-1">已超出预算！</p>
-                    )}
-                </div>
-                <div className="text-xs text-slate-400 pt-2">
+                )}
+                
+                <div className="text-xs text-slate-400 pt-2 border-t border-slate-100">
                     最近操作: {cycle.activities[cycle.activities.length - 1]?.type || '无'}
                 </div>
             </div>
