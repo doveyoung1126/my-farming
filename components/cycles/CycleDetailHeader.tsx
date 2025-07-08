@@ -19,8 +19,8 @@ export function CycleDetailHeader({ plotName, crop, startDate, endDate }: {
             </button>
             <div>
                 <h1 className="text-xl font-bold text-gray-800">{plotName} - {crop}</h1>
-                <p className="text-sm text-gray-500 mt-1">
-                    {startDate.toLocaleDateString()} - {endDate ? endDate.toLocaleDateString() : '进行中'}
+                <p className="text-sm text-gray-500 mt-1" suppressHydrationWarning>
+                    {startDate.toLocaleDateString('zh-CN')} - {endDate ? endDate.toLocaleDateString('zh-CN') : '进行中'}
                 </p>
             </div>
         </header>
