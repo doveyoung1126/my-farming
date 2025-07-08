@@ -100,3 +100,64 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         return NextResponse.json({ message: '更新地块失败', error: errorMessage }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+    try {
+        const plotId = parseInt(params.id, 10);
+        if (isNaN(plotId)) {
+            return NextResponse.json({ message: '无效的地块ID' }, { status: 400 });
+        }
+
+        const body = await request.json();
+        const { isArchived } = body;
+
+        if (typeof isArchived !== 'boolean') {
+            return NextResponse.json({ message: 'isArchived 字段必须是布尔值' }, { status: 400 });
+        }
+
+        // 如果要归档���需要检查是否有正在进行的周期
+        if (isArchived) {
+            const lastStartActivity = await prisma.activity.findFirst({
+                where: {
+                    plotId: plotId,
+                    type: { cycleMarker: 'START' },
+                },
+                orderBy: { date: 'desc' },
+            });
+
+            if (lastStartActivity) {
+                // 检查是否有对应的结束标记或下一个开始标记
+                const endMarker = await prisma.activity.findFirst({
+                    where: {
+                        plotId: plotId,
+                        date: { gte: lastStartActivity.date },
+                        type: { cycleMarker: { in: ['END', 'START'] } },
+                        id: { not: lastStartActivity.id } // 排除自己
+                    }
+                });
+
+                // 如果在最后一个START之后，找不到任何END或新的START，则意味着周期正在进行中
+                if (!endMarker) {
+                    return NextResponse.json(
+                        { message: '无法归档：该地块上有一个正在进行的生产周期。请先结束或中止该周期。' },
+                        { status: 409 } // 409 Conflict
+                    );
+                }
+            }
+        }
+
+        const updatedPlot = await prisma.plot.update({
+            where: { id: plotId },
+            data: {
+                isArchived: isArchived,
+            },
+        });
+
+        return NextResponse.json(updatedPlot, { status: 200 });
+
+    } catch (error) {
+        console.error('归档地块失败:', error);
+        const errorMessage = error instanceof Error ? error.message : '发生未知错误';
+        return NextResponse.json({ message: '归档地块失败', error: errorMessage }, { status: 500 });
+    }
+}

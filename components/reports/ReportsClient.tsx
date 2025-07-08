@@ -95,7 +95,7 @@ export function ReportsClient({ plots, activities, records }: {
                     {/* 日期筛选器 */}
                     <div className="py-3 border-b border-slate-200">
                         <div className="flex items-center justify-between">
-                             <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2">
                                 {(['month', 'quarter', 'year'] as DateFilter[]).map(d => (
                                     <button key={d} onClick={() => setDateFilter(d)} className={`px-3 py-1.5 text-sm rounded-full ${dateFilter === d ? activeClass : inactiveClass}`}>
                                         {d === 'month' && '本月'}{d === 'quarter' && '近三月'}{d === 'year' && '近一年'}
@@ -104,19 +104,19 @@ export function ReportsClient({ plots, activities, records }: {
                             </div>
                             <div className="relative">
                                 <button onClick={() => setDatePickerVisible(!isDatePickerVisible)} className={`px-3 py-1.5 text-sm rounded-full flex items-center ${dateFilter === 'custom' ? activeClass : inactiveClass}`}>
-                                    <Calendar className="w-4 h-4 mr-1.5"/>
+                                    <Calendar className="w-4 h-4 mr-1.5" />
                                     {getDateFilterText()}
-                                    <ChevronDown className="w-4 h-4 ml-1.5"/>
+                                    <ChevronDown className="w-4 h-4 ml-1.5" />
                                 </button>
                                 {isDatePickerVisible && (
                                     <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 w-72 space-y-3">
                                         <div>
                                             <label className="text-xs text-slate-600">开始日期</label>
-                                            <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({...p, start: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                            <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({ ...p, start: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
                                         </div>
                                         <div>
                                             <label className="text-xs text-slate-600">结束日期</label>
-                                            <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({...p, end: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                            <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({ ...p, end: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
                                         </div>
                                         <button onClick={() => { setDateFilter('custom'); setDatePickerVisible(false); }} disabled={!customDate.start || !customDate.end} className="w-full bg-emerald-600 text-white py-2 rounded-md disabled:bg-slate-300">应用范围</button>
                                     </div>
@@ -137,7 +137,7 @@ export function ReportsClient({ plots, activities, records }: {
                             <div className="flex flex-wrap gap-2">
                                 <button onClick={() => setActivityFilter('all')} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === 'all' ? activeClass : inactiveClass}`}>全部地块</button>
                                 {plots.map(plot => (
-                                    <button key={plot.id} onClick={() => setActivityFilter(plot.id)} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === plot.id ? activeClass : inactiveClass}`}>{plot.name}</button>
+                                    <button key={plot.id} onClick={() => setActivityFilter(plot.id)} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === plot.id ? activeClass : inactiveClass}`}>{plot.isArchived ? (plot.name + '（已归档）') : plot.name}</button>
                                 ))}
                             </div>
                         )}

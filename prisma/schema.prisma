@@ -38,11 +38,12 @@ model RecordCategoryType {
 }
 
 model Plot {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  area      Float
-  crop        String?       
-  activities Activity[] 
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  area       Float
+  crop       String?
+  isArchived Boolean    @default(false) // 新增：归档状态
+  activities Activity[]
 }
 
 model Activity {

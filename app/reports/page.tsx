@@ -12,8 +12,9 @@ import { ReportsClient } from '@/components/reports/ReportsClient';
 export default async function ReportsPage() {
 
     // 1. 并行获取所有必需的数据，确保数据来源独立
+    // 对于报告页面，我们需要获取所有地块（包括已归档的）以确保历史数据的完整性。
     const [plots, activities, records] = await Promise.all([
-        getPlots(),
+        getPlots(true), // 传入 true 来获取所有地块
         getAllActiviesDetails(),
         getRecordsWithActivity() // 直接从数据库获取所有财务记录
     ]);

@@ -7,15 +7,16 @@ const prisma = new PrismaClient();
 
 // 地块配置
 const PLOTS_CONFIG = [
-  { name: 'A1-番茄试验田', area: 2.5 },
-  { name: 'B2-高效黄瓜棚', area: 4.0 },
-  { name: 'C3-有机草莓园', area: 3.2 },
-  { name: 'D4-水培生菜区', area: 1.8 },
-  { name: 'E5-备用空闲地', area: 5.0 },
+  { name: 'A1-番茄试验田', area: 2.5, isArchived: false },
+  { name: 'B2-高效黄瓜棚', area: 4.0, isArchived: false },
+  { name: 'C3-有机草莓园', area: 3.2, isArchived: false },
+  { name: 'D4-水培生菜区', area: 1.8, isArchived: false },
+  { name: 'E5-备用空闲地', area: 5.0, isArchived: false },
+  { name: 'F6-旧的桃树林', area: 10.0, isArchived: true }, // 新增一个已归档的地块
 ];
 
 // 作物类型
-const CROPS = ['番茄', '黄瓜', '草莓', '生菜', '辣椒'];
+const CROPS = ['番茄', '黄瓜', '草莓', '生菜', '辣椒', '桃'];
 
 // 活动类型配置 (包含周期标记)
 const ACTIVITY_TYPES_CONFIG = [
@@ -23,7 +24,7 @@ const ACTIVITY_TYPES_CONFIG = [
   { name: '播种育苗', cycleMarker: CycleMarker.START },
   { name: '日常灌溉', cycleMarker: null },
   { name: '营养施肥', cycleMarker: null },
-  { name: '病虫害防治', cycleMarker: null },
+  { name: '病虫害防���', cycleMarker: null },
   { name: '成熟采收', cycleMarker: CycleMarker.END },
   { name: '产品包装', cycleMarker: null },
   { name: '市场运输', cycleMarker: null },
@@ -134,52 +135,76 @@ async function main() {
   // 4. 为每个地块创建生产周期和活动
   console.log('🔄 创建生产周期和活动...');
   for (const plot of plots) {
-    // E5地块保持空闲
+    // 跳过空闲地块
     if (plot.name.includes('空闲')) {
       console.log(`   - 地块 ${plot.name} 保持空闲.`);
       continue;
     }
 
-    const crop = CROPS[Math.floor(Math.random() * CROPS.length)];
-    await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
-    console.log(`   - 为地块 ${plot.name} 分配作物: ${crop}`);
+    // 为归档地块创建一些历史数据
+    if (plot.isArchived) {
+      console.log(`   - 为归档地块 ${plot.name} 创建历史数据...`);
+      const crop = '桃'; // 假设归档地块作物是桃
+      await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
 
-    // 为每个地块创建2个周期 (1个完成, 1个进行中)
-    for (let i = 0; i < 2; i++) {
-      const isCompletedCycle = i === 0;
-      const cycleYear = new Date().getFullYear() - (1 - i); // 第一个周期是去年的
-
-      // a. 定义周期的开始和结束活动类型
+      // 创建一个2年前完成的周期
+      const cycleYear = new Date().getFullYear() - 2;
       const startType = activityTypes.find(at => at.cycleMarker === CycleMarker.START)!;
       const endType = activityTypes.find(at => at.cycleMarker === CycleMarker.END)!;
-
-      // b. 创建周期开始活动
-      const startDate = randomDate(new Date(`${cycleYear}-03-01`), new Date(`${cycleYear}-04-15`));
-      const budget = randomNumber(2000, 5000) * plot.area; // 根据面积估算预算
+      const startDate = randomDate(new Date(`${cycleYear}-05-01`), new Date(`${cycleYear}-06-15`));
+      const budget = randomNumber(2000, 5000) * plot.area;
       await createActivity(plot.id, crop, startType.id, startDate, plot.area, budget);
 
-      // c. 创建生长过程中的活动 (3-5个)
-      const growthActivityCount = Math.floor(randomNumber(3, 5));
+      const growthActivityCount = Math.floor(randomNumber(2, 4));
       const growthTypes = activityTypes.filter(at => at.cycleMarker === null && !['产品包装', '市场运输'].includes(at.name));
       for (let j = 0; j < growthActivityCount; j++) {
-        const activityDate = new Date(startDate.getTime() + randomNumber(15, 75) * 24 * 60 * 60 * 1000);
+        const activityDate = new Date(startDate.getTime() + randomNumber(20, 60) * 24 * 60 * 60 * 1000);
         const randomType = growthTypes[Math.floor(Math.random() * growthTypes.length)];
         await createActivity(plot.id, crop, randomType.id, activityDate, plot.area);
       }
 
-      // d. 如果是已完成的周期，则创建结束活动和后续活动
-      if (isCompletedCycle) {
-        const endDate = new Date(startDate.getTime() + randomNumber(90, 120) * 24 * 60 * 60 * 1000);
-        await createActivity(plot.id, crop, endType.id, endDate, plot.area);
+      const endDate = new Date(startDate.getTime() + randomNumber(80, 100) * 24 * 60 * 60 * 1000);
+      await createActivity(plot.id, crop, endType.id, endDate, plot.area);
+      console.log(`     - 为归档地块 ${plot.name} 创建了一个于 ${cycleYear} 年完成的历史周期.`);
 
-        // 创建包装和运输活动
-        const packagingType = activityTypes.find(at => at.name === '产品包装')!;
-        const transportType = activityTypes.find(at => at.name === '市场运输')!;
-        await createActivity(plot.id, crop, packagingType.id, new Date(endDate.getTime() + 1 * 24 * 60 * 60 * 1000), plot.area);
-        await createActivity(plot.id, crop, transportType.id, new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000), plot.area);
-        console.log(`     - 为 ${plot.name} 创建了一个于 ${cycleYear} 年完成的周期.`);
-      } else {
-        console.log(`     - 为 ${plot.name} 创建了一个当前正在进行的周期.`);
+    } else {
+      // 为活动地块创建周期
+      const crop = CROPS.filter(c => c !== '桃')[Math.floor(Math.random() * (CROPS.length - 1))];
+      await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
+      console.log(`   - 为地块 ${plot.name} 分配作物: ${crop}`);
+
+      // 为每个地块创建2个周期 (1个完成, 1个进行中)
+      for (let i = 0; i < 2; i++) {
+        const isCompletedCycle = i === 0;
+        const cycleYear = new Date().getFullYear() - (1 - i); // 第一个周期是去年的
+
+        const startType = activityTypes.find(at => at.cycleMarker === CycleMarker.START)!;
+        const endType = activityTypes.find(at => at.cycleMarker === CycleMarker.END)!;
+
+        const startDate = randomDate(new Date(`${cycleYear}-03-01`), new Date(`${cycleYear}-04-15`));
+        const budget = randomNumber(2000, 5000) * plot.area;
+        await createActivity(plot.id, crop, startType.id, startDate, plot.area, budget);
+
+        const growthActivityCount = Math.floor(randomNumber(3, 5));
+        const growthTypes = activityTypes.filter(at => at.cycleMarker === null && !['产品包装', '市场运输'].includes(at.name));
+        for (let j = 0; j < growthActivityCount; j++) {
+          const activityDate = new Date(startDate.getTime() + randomNumber(15, 75) * 24 * 60 * 60 * 1000);
+          const randomType = growthTypes[Math.floor(Math.random() * growthTypes.length)];
+          await createActivity(plot.id, crop, randomType.id, activityDate, plot.area);
+        }
+
+        if (isCompletedCycle) {
+          const endDate = new Date(startDate.getTime() + randomNumber(90, 120) * 24 * 60 * 60 * 1000);
+          await createActivity(plot.id, crop, endType.id, endDate, plot.area);
+
+          const packagingType = activityTypes.find(at => at.name === '产品包装')!;
+          const transportType = activityTypes.find(at => at.name === '市场运输')!;
+          await createActivity(plot.id, crop, packagingType.id, new Date(endDate.getTime() + 1 * 24 * 60 * 60 * 1000), plot.area);
+          await createActivity(plot.id, crop, transportType.id, new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000), plot.area);
+          console.log(`     - 为 ${plot.name} 创建了一个于 ${cycleYear} 年完成的周期.`);
+        } else {
+          console.log(`     - 为 ${plot.name} 创建了一个当前正在进行的周期.`);
+        }
       }
     }
   }

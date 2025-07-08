@@ -58,18 +58,21 @@ export const getAllActiviesDetails = async () => {
     }
 }
 
-export const getPlots = async () => {
+export const getPlots = async (includeArchived = false) => {
     try {
-        const plots = await prisma.plot.findMany()
+        const whereClause = includeArchived ? {} : { isArchived: false };
+        const plots = await prisma.plot.findMany({
+            where: whereClause,
+        });
 
-        return plots
+        return plots;
     } catch (error) {
-        console.error('获取农田数据失败:', error)
-        throw new Error('无法获取农田数据')
+        console.error('获取农田数据失败:', error);
+        throw new Error('无法获取农田数据');
     } finally {
-        await prisma.$disconnect()
+        await prisma.$disconnect();
     }
-}
+};
 
 export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number, plots: PrismaPlots[]) => {
     const sortedActivities = [...activities].reverse();
@@ -275,8 +278,8 @@ export const getPlotDetails = async (plotId: number) => {
 
         const transformedActivities = activitiesOnPlot.map(transformActivity);
 
-        // 获取所有地块，因为 getPlotCycles 需要
-        const allPlots = await prisma.plot.findMany();
+        // 获取所有地块（包括归档的），因为 getPlotCycles 需要
+        const allPlots = await getPlots(true);
 
         const cyclesOnPlot = getPlotCycles(transformedActivities, plotId, allPlots);
 
