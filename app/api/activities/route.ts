@@ -41,6 +41,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('创建农事活动失败:', error);
-        return NextResponse.json({ message: '创建农事活动失败', error: error.message }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : '发生未知错误';
+        return NextResponse.json({ message: '创建农事活动失败', error: errorMessage }, { status: 500 });
     }
 }

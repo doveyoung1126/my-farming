@@ -4,6 +4,7 @@
 import { X, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AddActivityForm } from '@/components/forms/AddActivityForm';
+import { AddFinancialRecordForm } from '@/components/forms/AddFinancialRecordForm'; // 导入新的表单组件
 import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
 
 interface ActionModalProps {
@@ -118,6 +119,14 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
                     <AddActivityForm 
                         activityTypes={activityTypes} 
                         plots={plots} 
+                        recordCategoryTypes={recordCategoryTypes} 
+                        onSuccess={handleFormSuccess}
+                        onCancel={handleFormCancel}
+                    />
+                )}
+
+                {currentForm === 'addFinancial' && (
+                    <AddFinancialRecordForm 
                         recordCategoryTypes={recordCategoryTypes} 
                         onSuccess={handleFormSuccess}
                         onCancel={handleFormCancel}
