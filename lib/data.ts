@@ -72,19 +72,26 @@ export const getPlots = async () => {
 }
 
 export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number, plots: PrismaPlots[]) => {
-    const sortedActivities = [...activities].reverse()
+    const sortedActivities = [...activities].reverse();
     const generateCycleId = (plotId: number, startDate: Date) => {
-        return `cycle-${plotId}-${startDate.getTime()}`
-    }
-    const selectPlot = plots.filter(p => p.id === plotId)[0]
+        return `cycle-${plotId}-${startDate.getTime()}`;
+    };
+    const selectPlot = plots.find(p => p.id === plotId);
+
+    if (!selectPlot) return [];
 
     const calculateCycles = () => {
-        let currentCycle: ActivityCycle | null = null
-        const cycles: ActivityCycle[] = []
+        let currentCycle: ActivityCycle | null = null;
+        const cycles: ActivityCycle[] = [];
 
         for (const activity of sortedActivities) {
             if (activity.cycleMarker === 'START') {
-                if (currentCycle) cycles.push(currentCycle);
+                if (currentCycle) {
+                    // 如果当前周期存在，但又遇到了一个新的开始标记，则将当前周期视为“中止”
+                    currentCycle.status = 'aborted';
+                    currentCycle.end = activity.date; // 中止日期为新周期的开始日期
+                    cycles.push(currentCycle);
+                }
                 currentCycle = {
                     id: generateCycleId(plotId, activity.date),
                     plotId: plotId,
@@ -92,24 +99,26 @@ export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: numb
                     start: activity.date,
                     budget: activity.budget,
                     end: null,
-                    activities: [activity]
+                    activities: [activity],
+                    status: 'ongoing', // 新周期的初始状态为“进行中”
                 };
-            }
-            else if (activity.cycleMarker === 'END' && currentCycle) {
+            } else if (activity.cycleMarker === 'END' && currentCycle) {
                 currentCycle.end = activity.date;
+                currentCycle.status = 'completed';
                 currentCycle.activities.push(activity);
                 cycles.push(currentCycle);
                 currentCycle = null;
-            }
-            else if (currentCycle) {
+            } else if (currentCycle) {
                 currentCycle.activities.push(activity);
             }
         }
-        if (currentCycle) cycles.push(currentCycle);
+        if (currentCycle) {
+            cycles.push(currentCycle);
+        }
         return cycles;
-    }
-    return calculateCycles()
-}
+    };
+    return calculateCycles();
+};
 
 export const getActivitiesRecordsSummary = (activities: ActivityWithFinancials[]) => {
     // const expenseRecords = activities.filter(activity => activity.)
@@ -317,9 +326,31 @@ export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycl
             }
         });
 
-        const endDate = nextCycleStart ? new Date(nextCycleStart.date) : null;
+        // 3. 找到此周期的结束标记活动（如果有）
+        const endActivity = await prisma.activity.findFirst({
+            where: {
+                plotId: startActivity.plotId,
+                type: { cycleMarker: 'END' },
+                date: { gt: startActivity.date },
+                ...(nextCycleStart && { date: { lt: nextCycleStart.date } })
+            },
+            orderBy: {
+                date: 'asc'
+            }
+        });
 
-        // 3. 查询此周期内的所有活动
+        let status: 'ongoing' | 'completed' | 'aborted' = 'ongoing';
+        let endDate: Date | null = null;
+
+        if (endActivity) {
+            status = 'completed';
+            endDate = endActivity.date;
+        } else if (nextCycleStart) {
+            status = 'aborted';
+            endDate = nextCycleStart.date;
+        }
+
+        // 4. 查询此周期内的所有活动
         const activitiesInCycle = await prisma.activity.findMany({
             where: {
                 plotId: startActivity.plotId,
@@ -342,7 +373,7 @@ export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycl
             }
         });
 
-        // 4. 构建并返回周期对象
+        // 5. 构建并返回周期对象
         const cycle: ActivityCycle = {
             id: `cycle-${startActivity.plotId}-${startActivity.date.getTime()}`,
             plotId: startActivity.plotId,
@@ -351,6 +382,7 @@ export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycl
             end: endDate,
             budget: startActivity.budget,
             activities: activitiesInCycle.map(transformActivity),
+            status: status,
         };
 
         return cycle;

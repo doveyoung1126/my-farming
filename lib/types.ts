@@ -44,8 +44,9 @@ export interface ActivityCycle {
     start: Date
     end: Date | null
     budget?: number | null
-    activities: ActivityWithFinancials[];
-    plot: PrismaPlots; // 添加 plot 属性
+    activities: ActivityWithFinancials[]
+    plot: PrismaPlots
+    status: 'ongoing' | 'completed' | 'aborted'
 }
 
 // 使用 Prisma 工具定义查询返回类型

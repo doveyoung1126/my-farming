@@ -30,14 +30,7 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
             <main className="flex-1 overflow-y-auto">
                 {/* 周期摘要卡片 */}
                 <div className="p-4">
-                    {cycle.end ? (
-                        // 已完成周期的 "成绩单" 视图
-                        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-lg overflow-hidden shadow">
-                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.cycleIncome.toLocaleString()}</p></div>
-                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</p></div>
-                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.cycleProfit) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{summary.cycleProfit.toLocaleString()}</p></div>
-                        </div>
-                    ) : (
+                    {cycle.status === 'ongoing' ? (
                         // 进行中周期的 "预算控制器" 视图
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="flex justify-between items-center text-sm text-slate-600 mb-1">
@@ -55,6 +48,13 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
                             <p className={`text-xs mt-1.5 text-right ${(summary.cycleExpense > (cycle.budget || 0)) ? 'text-red-500' : 'text-slate-500'}`}>
                                 { (cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
                             </p>
+                        </div>
+                    ) : (
+                        // 已完成或中止周期的 "成绩单" 视图
+                        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-lg overflow-hidden shadow">
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.cycleIncome.toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">{cycle.status === 'aborted' ? '总投入' : '净利润'}</p><p className={`text-base font-bold ${cycle.status === 'aborted' ? 'text-gray-600' : (summary.cycleProfit >= 0 ? 'text-emerald-600' : 'text-amber-600')}`}>{cycle.status === 'aborted' ? `-¥${Math.abs(summary.cycleExpense).toLocaleString()}` : `¥${summary.cycleProfit.toLocaleString()}`}</p></div>
                         </div>
                     )}
                 </div>

@@ -8,6 +8,7 @@ import { getActivitiesRecordsSummary } from "@/lib/data";
 export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const summary = getActivitiesRecordsSummary(cycle.activities);
     const isProfitable = summary.cycleProfit >= 0;
+    const isAborted = cycle.status === 'aborted';
 
     // 预算信息
     const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
@@ -17,6 +18,16 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     const cycleStartActivity = cycle.activities.find(a => a.cycleMarker === 'START');
     if (!cycleStartActivity) return null; // 如果没有起始活动，则不渲染卡片
 
+    const getStatusBadge = () => {
+        if (isAborted) {
+            return <div className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">已中止</div>;
+        }
+        if (isProfitable) {
+            return <div className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">盈利</div>;
+        }
+        return <div className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">亏损</div>;
+    };
+
     return (
         <Link href={`/cycles/${cycleStartActivity.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             <div className="p-4">
@@ -25,15 +36,14 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                         <h3 className="font-bold text-slate-800">{cycle.plot.name}</h3>
                         <p className="text-sm text-slate-500 mt-1">作物: {cycle.plot.crop || '未指定'}</p>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${isProfitable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {isProfitable ? '盈利' : '亏损'}
-                    </div>
+                    {getStatusBadge()}
                 </div>
 
                 <div className="text-center my-4">
-                    <p className={`text-4xl font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-                        {isProfitable ? '+' : ''}¥{summary.cycleProfit.toLocaleString()}
+                    <p className={`text-4xl font-bold ${isAborted ? 'text-gray-600' : (isProfitable ? 'text-green-600' : 'text-red-600')}`}>
+                        {isAborted ? '-' : (isProfitable ? '+' : '')}¥{isAborted ? Math.abs(summary.cycleExpense).toLocaleString() : summary.cycleProfit.toLocaleString()}
                     </p>
+                    {isAborted && <p className="text-xs text-gray-500 mt-1">总投入</p>}
                 </div>
 
                 <div className="flex justify-around text-center text-sm text-slate-600 border-t border-slate-100 pt-3 mt-4">
@@ -48,7 +58,9 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                     </div>
                     <div>
                         <p className="text-xs text-slate-500">回报率</p>
-                        <p className={`font-semibold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>{summary.cycleRoi.toFixed(1)}%</p>
+                        <p className={`font-semibold ${isAborted ? 'text-gray-600' : (isProfitable ? 'text-green-600' : 'text-red-600')}`}>
+                            {isAborted ? 'N/A' : `${summary.cycleRoi.toFixed(1)}%`}
+                        </p>
                     </div>
                 </div>
             </div>

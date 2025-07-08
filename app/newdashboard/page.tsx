@@ -20,8 +20,8 @@ export default async function NewDashboardPage() {
         return getPlotCycles(plotActivities, plot.id, plots).map(cycle => ({ ...cycle, plot }));
     });
 
-    const ongoingCycles = allCycles.filter(cycle => cycle.end === null);
-    const completedCycles = allCycles.filter(cycle => cycle.end !== null).sort((a, b) => b.end!.getTime() - a.end!.getTime());
+    const ongoingCycles = allCycles.filter(cycle => cycle.status === 'ongoing');
+    const completedCycles = allCycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => b.end!.getTime() - a.end!.getTime());
 
     return (
         <div className="h-full bg-slate-50 overflow-y-auto pb-20">
