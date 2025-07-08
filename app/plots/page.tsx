@@ -3,13 +3,14 @@ import { getPlots } from "@/lib/data";
 import { PlotsClient } from "@/components/plots/PlotsClient";
 import { PlotsHeader } from "@/components/plots/PlotsHeader"; // 引入新的 Header
 
-export default async function PlotsPage({
-    searchParams,
-}: {
-    searchParams?: {
-        showArchived?: string;
-    };
-}) {
+export default async function PlotsPage(
+    props: {
+        searchParams?: Promise<{
+            showArchived?: string;
+        }>;
+    }
+) {
+    const searchParams = await props.searchParams;
     const showArchived = searchParams?.showArchived === 'true';
     const plots = await getPlots(showArchived);
 
