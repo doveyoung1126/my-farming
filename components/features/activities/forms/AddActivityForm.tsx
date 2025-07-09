@@ -9,8 +9,10 @@ interface AddActivityFormProps {
     activityTypes: ActivityType[];
     plots: PrismaPlots[];
     recordCategoryTypes: RecordCategoryType[];
-    onSuccess: () => void;
+    onSubmit: (data: any) => void; // Use 'any' for now, will define specific payload type later if needed
     onCancel: () => void;
+    isLoading: boolean;
+    error: string | null;
 }
 
 interface FinancialRecordForm {
@@ -20,7 +22,7 @@ interface FinancialRecordForm {
     date: string;
 }
 
-export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onSuccess, onCancel }: AddActivityFormProps) {
+export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onSubmit, onCancel, isLoading, error }: AddActivityFormProps) {
     const [activityTypeId, setActivityTypeId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [plotId, setPlotId] = useState('');
@@ -28,8 +30,6 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
     const [budget, setBudget] = useState('');
     const [records, setRecords] = useState<FinancialRecordForm[]>([{ amount: '', recordTypeId: '', description: '', date: new Date().toISOString().split('T')[0] }]);
     const [showFinancials, setShowFinancials] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     // 根据选择的活动类型，判断是否显示预算字段
     const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
@@ -63,47 +63,26 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
 
-        try {
-            const payload = {
-                activityTypeId: activityTypeId,
-                date: date,
-                plotId: plotId,
-                crop: crop || null,
-                budget: showBudgetField && budget ? parseFloat(budget) : null,
-                records: showFinancials ? records.map(rec => ({
-                    ...rec,
-                    amount: parseFloat(rec.amount),
-                    recordTypeId: parseInt(rec.recordTypeId),
-                })) : [],
-            };
+        const payload = {
+            activityTypeId: activityTypeId,
+            date: date,
+            plotId: plotId,
+            crop: crop || null,
+            budget: showBudgetField && budget ? parseFloat(budget) : null,
+            records: showFinancials ? records.map(rec => ({
+                ...rec,
+                amount: parseFloat(rec.amount),
+                recordTypeId: parseInt(rec.recordTypeId),
+            })) : [],
+        };
 
-            const response = await fetch('/api/activities', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '提交失败');
-            }
-
-            onSuccess(); // 调用成功回调
-        } catch (err: any) {
-            setError(err.message || '发生未知错误');
-        } finally {
-            setIsLoading(false);
-        }
+        onSubmit(payload);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
-            {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg">{error}</div>}
+            
 
             {/* 活动基本信息 */}
             <div>

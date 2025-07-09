@@ -5,7 +5,7 @@ import { X, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AddActivityForm } from '@/components/features/activities/forms/AddActivityForm';
 import { AddFinancialRecordForm } from '@/components/features/records/forms/AddFinancialRecordForm';
-import { AddPlotForm } from '@/components/features/plots/forms/AddPlotForm'; // 导入新的表单组件
+import { AddPlotForm, AddPlotPayload } from '@/components/features/plots/forms/AddPlotForm';
 import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
 
 interface ActionModalProps {
@@ -23,6 +23,8 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
     const [shouldRender, setShouldRender] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [currentForm, setCurrentForm] = useState<CurrentForm>('select');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -34,6 +36,7 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
             const timer = setTimeout(() => {
                 setShouldRender(false);
                 setCurrentForm('select'); // 关闭时重置表单选择
+                setError(null); // 关闭时清除错误信息
             }, 300);
             return () => clearTimeout(timer);
         }
@@ -41,6 +44,7 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
 
     const handleSelectAction = (action: CurrentForm) => {
         setCurrentForm(action);
+        setError(null); // 切换表单时清除错误信息
     };
 
     const handleFormSuccess = () => {
@@ -50,6 +54,71 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
 
     const handleFormCancel = () => {
         setCurrentForm('select'); // 返回到选择菜单
+        setError(null); // 取消时清除错误信息
+    };
+
+    // --- Handlers for Add Forms ---
+    const handleAddPlot = async (data: AddPlotPayload) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/plots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '添加地块失败');
+            }
+            handleFormSuccess();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAddActivity = async (payload: any) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/activities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '添加农事活动失败');
+            }
+            handleFormSuccess();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAddFinancialRecord = async (payload: any) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '添加财务记录失败');
+            }
+            handleFormSuccess();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (!shouldRender) return null;
@@ -93,6 +162,8 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
                     </button>
                 </div>
 
+                {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
+
                 {currentForm === 'select' && (
                     <div className="space-y-3">
                         <button 
@@ -121,23 +192,29 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
                         activityTypes={activityTypes} 
                         plots={plots} 
                         recordCategoryTypes={recordCategoryTypes} 
-                        onSuccess={handleFormSuccess}
+                        onSubmit={handleAddActivity}
                         onCancel={handleFormCancel}
+                        isLoading={isLoading}
+                        error={error}
                     />
                 )}
 
                 {currentForm === 'addFinancial' && (
                     <AddFinancialRecordForm 
                         recordCategoryTypes={recordCategoryTypes} 
-                        onSuccess={handleFormSuccess}
+                        onSubmit={handleAddFinancialRecord}
                         onCancel={handleFormCancel}
+                        isLoading={isLoading}
+                        error={error}
                     />
                 )}
 
                 {currentForm === 'addPlot' && (
                     <AddPlotForm 
-                        onSuccess={handleFormSuccess}
+                        onSubmit={handleAddPlot}
                         onCancel={handleFormCancel}
+                        isLoading={isLoading}
+                        error={error}
                     />
                 )}
             </div>

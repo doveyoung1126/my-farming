@@ -4,49 +4,31 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
-interface AddPlotFormProps {
-    onSuccess: () => void;
-    onCancel: () => void;
+export interface AddPlotPayload {
+    name: string;
+    area: number;
+    crop: string | null;
 }
 
-export function AddPlotForm({ onSuccess, onCancel }: AddPlotFormProps) {
+interface AddPlotFormProps {
+    onSubmit: (data: AddPlotPayload) => void;
+    onCancel: () => void;
+    isLoading: boolean;
+    error: string | null;
+}
+
+export function AddPlotForm({ onSubmit, onCancel, isLoading, error }: AddPlotFormProps) {
     const [name, setName] = useState('');
     const [area, setArea] = useState('');
     const [crop, setCrop] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const payload = {
-                name: name,
-                area: parseFloat(area),
-                crop: crop || null,
-            };
-
-            const response = await fetch('/api/plots', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '提交失败');
-            }
-
-            onSuccess(); // 调用成功回调
-        } catch (err: any) {
-            setError(err.message || '发生未知错误');
-        } finally {
-            setIsLoading(false);
-        }
+        onSubmit({
+            name: name,
+            area: parseFloat(area),
+            crop: crop || null,
+        });
     };
 
     return (
@@ -98,6 +80,7 @@ export function AddPlotForm({ onSuccess, onCancel }: AddPlotFormProps) {
                     type="button" 
                     onClick={onCancel} 
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                    disabled={isLoading}
                 >
                     取消
                 </button>

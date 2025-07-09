@@ -7,55 +7,34 @@ import { Loader2 } from 'lucide-react';
 
 interface AddFinancialRecordFormProps {
     recordCategoryTypes: RecordCategoryType[];
-    onSuccess: () => void;
+    onSubmit: (data: any) => void; // Use 'any' for now, will define specific payload type later if needed
     onCancel: () => void;
+    isLoading: boolean;
+    error: string | null;
 }
 
-export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCancel }: AddFinancialRecordFormProps) {
+export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel, isLoading, error }: AddFinancialRecordFormProps) {
     const [amount, setAmount] = useState('');
     const [recordTypeId, setRecordTypeId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
 
-        try {
-            const payload = {
-                amount: parseFloat(amount),
-                recordTypeId: parseInt(recordTypeId),
-                date: date,
-                description: description || null,
-            };
+        const payload = {
+            amount: parseFloat(amount),
+            recordTypeId: parseInt(recordTypeId),
+            date: date,
+            description: description || null,
+        };
 
-            const response = await fetch('/api/records', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '提交失败');
-            }
-
-            onSuccess(); // 调用成功回调
-        } catch (err: any) {
-            setError(err.message || '发生未知错误');
-        } finally {
-            setIsLoading(false);
-        }
+        onSubmit(payload);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
-            {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg">{error}</div>}
+            
 
             <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
