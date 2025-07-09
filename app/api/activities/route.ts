@@ -5,13 +5,13 @@ import prisma from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { 
-            activityTypeId, 
-            date, 
-            plotId, 
-            crop, 
-            budget, 
-            records 
+        const {
+            activityTypeId,
+            date,
+            plotId,
+            crop,
+            budget,
+            records
         } = body;
 
         // 验证必填字段

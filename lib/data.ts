@@ -23,7 +23,7 @@ function transformActivity(activity: PrismaActivityWithFinancials): ActivityWith
             id: record.id,
             amount: record.amount,
             description: record.description,
-            recordType: record.type.category,
+            recordType: record.type.name,
             recordCategory: record.type.category,
             date: record.date
         }))

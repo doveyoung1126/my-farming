@@ -1,7 +1,7 @@
 // components/ActivitiesList.tsx
 import { ActivityWithFinancials } from '@/lib/types'
 import { calculateFinancials } from '@/lib/utils';
-import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap } from 'lucide-react';
+import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil } from 'lucide-react';
 
 // 活动类型图标映射
 const activityIcons: Record<string, React.JSX.Element> = {
@@ -16,9 +16,11 @@ const activityIcons: Record<string, React.JSX.Element> = {
 };
 
 const ActivitiesList = ({
-    activities
+    activities,
+    onEditActivity
 }: {
-    activities: ActivityWithFinancials[]
+    activities: ActivityWithFinancials[];
+    onEditActivity?: (activity: ActivityWithFinancials) => void; // Make it optional
 }) => {
     return (
         <div className="space-y-3 mb-20">
@@ -47,11 +49,22 @@ const ActivitiesList = ({
                                     <h3 className="font-semibold text-gray-800 truncate">
                                         {activity.plotName} · {activity.type}
                                     </h3>
-                                    <span className="text-sm text-gray-500 whitespace-nowrap ml-2 flex items-center"
-                                        suppressHydrationWarning>
-                                        <CalendarDays className="w-4 h-4 mr-1 text-gray-400" />
-                                        {activity.date.toLocaleDateString('zh-CN')}
-                                    </span>
+                                    <div className="flex items-center"> {/* Wrap date and edit button */}
+                                        <span className="text-sm text-gray-500 whitespace-nowrap ml-2 flex items-center"
+                                            suppressHydrationWarning>
+                                            <CalendarDays className="w-4 h-4 mr-1 text-gray-400" />
+                                            {activity.date.toLocaleDateString('zh-CN')}
+                                        </span>
+                                        {onEditActivity && (
+                                            <button
+                                                onClick={() => onEditActivity(activity)}
+                                                className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                                                aria-label="编辑活动"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* 财务摘要 */}

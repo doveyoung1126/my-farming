@@ -54,7 +54,7 @@ export function FormModal({ isOpen, onClose, title, children }: FormModalProps) 
                         <X className="w-5 h-5 text-gray-600" />
                     </button>
                 </div>
-                <div className="p-4">
+                <div className="p-4 max-h-[80vh] overflow-y-auto">
                     {children}
                 </div>
             </div>

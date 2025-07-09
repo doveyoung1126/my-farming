@@ -3,13 +3,14 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType } from '@/lib/types';
+import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType, ActivityType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { ConfirmationModal } from '../../ui/ConfirmationModal';
 import { FormModal } from '../../ui/FormModal';
 import { EditFinancialRecordForm, EditFinancialRecordPayload } from '../records/forms/EditFinancialRecordForm';
+import { EditActivityForm } from '../activities/forms/EditActivityForm'; // Import EditActivityForm
 
 // --- 类型定义 ---
 type View = 'financial' | 'activity';
@@ -20,11 +21,12 @@ type DateFilter = 'month' | 'quarter' | 'year' | 'custom';
 /**
  * 报告页面的客户端容器组件
  */
-export function ReportsClient({ plots, activities, records, recordCategoryTypes }: {
+export function ReportsClient({ plots, activities, records, recordCategoryTypes, activityTypes }: {
     plots: PrismaPlots[];
     activities: ActivityWithFinancials[];
     records: FinancialWithActivity[];
     recordCategoryTypes: RecordCategoryType[];
+    activityTypes: ActivityType[]; // Add activityTypes prop
 }) {
     // --- State管理 ---
     const [activeView, setActiveView] = useState<View>('financial');
@@ -39,6 +41,8 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
     const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [recordToEdit, setRecordToEdit] = useState<FinancialWithActivity | null>(null);
+    const [isEditActivityModalOpen, setIsEditActivityModalOpen] = useState(false); // New state for activity edit modal
+    const [activityToEdit, setActivityToEdit] = useState<ActivityWithFinancials | null>(null); // New state for activity to edit
 
     // --- Async Operation State ---
     const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +128,13 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
         setError(null);
     };
 
+    const handleEditActivity = (activity: ActivityWithFinancials) => {
+        setActivityToEdit(activity);
+        setIsEditActivityModalOpen(true);
+        setError(null);
+        console.log(activity)
+    };
+
     const handleConfirmEdit = async (data: EditFinancialRecordPayload) => {
         if (!recordToEdit) return;
         setIsLoading(true);
@@ -140,6 +151,30 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
             }
             setIsEditModalOpen(false);
             setRecordToEdit(null);
+            router.refresh(); // 刷新数据
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleConfirmEditActivity = async (data: ActivityWithFinancials) => {
+        if (!activityToEdit) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/activities/${activityToEdit.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '更新农事活动失败');
+            }
+            setIsEditActivityModalOpen(false);
+            setActivityToEdit(null);
             router.refresh(); // 刷新数据
         } catch (err: any) {
             setError(err.message);
@@ -234,7 +269,7 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
 
                 {/* 内容区域 */}
                 <div className="p-4">
-                    {activeView === 'financial' ? <FinancialReportView records={filteredRecords} onEditRecord={handleEditRecord} onDeleteRecord={handleDeleteRecord} /> : <ActivityLogView activities={filteredActivities} />}
+                    {activeView === 'financial' ? <FinancialReportView records={filteredRecords} onEditRecord={handleEditRecord} onDeleteRecord={handleDeleteRecord} /> : <ActivityLogView activities={filteredActivities} onEditActivity={handleEditActivity} />}
                 </div>
             </div>
 
@@ -265,6 +300,26 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
                         recordCategoryTypes={recordCategoryTypes}
                         onSubmit={handleConfirmEdit}
                         onCancel={() => setIsEditModalOpen(false)}
+                        isLoading={isLoading}
+                        error={error}
+                    />
+                </FormModal>
+            )}
+
+            {/* Edit Activity Modal */}
+            {activityToEdit && (
+                <FormModal
+                    isOpen={isEditActivityModalOpen}
+                    onClose={() => setIsEditActivityModalOpen(false)}
+                    title="编辑农事活动"
+                >
+                    <EditActivityForm
+                        initialActivity={activityToEdit}
+                        activityTypes={activityTypes} // Corrected prop
+                        plots={plots}
+                        recordCategoryTypes={recordCategoryTypes}
+                        onSubmit={handleConfirmEditActivity}
+                        onCancel={() => setIsEditActivityModalOpen(false)}
                         isLoading={isLoading}
                         error={error}
                     />
