@@ -2,10 +2,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
 import { Calendar, ChevronDown } from 'lucide-react';
+import { ConfirmationModal } from '../common/ConfirmationModal';
+import { FormModal } from '../common/FormModal';
+import { EditFinancialRecordForm, EditFinancialRecordPayload } from '../forms/EditFinancialRecordForm';
 
 // --- 类型定义 ---
 type View = 'financial' | 'activity';
@@ -14,12 +18,13 @@ type ActivityFilter = number | 'all';
 type DateFilter = 'month' | 'quarter' | 'year' | 'custom';
 
 /**
- * 报告页面的客户端容器组件 (V2 - 优化UI/UX)
+ * 报告页面的客户端容器组件
  */
-export function ReportsClient({ plots, activities, records }: {
+export function ReportsClient({ plots, activities, records, recordCategoryTypes }: {
     plots: PrismaPlots[];
     activities: ActivityWithFinancials[];
     records: FinancialWithActivity[];
+    recordCategoryTypes: RecordCategoryType[];
 }) {
     // --- State管理 ---
     const [activeView, setActiveView] = useState<View>('financial');
@@ -28,6 +33,18 @@ export function ReportsClient({ plots, activities, records }: {
     const [dateFilter, setDateFilter] = useState<DateFilter>('month');
     const [customDate, setCustomDate] = useState({ start: '', end: '' });
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+    
+    // --- Modal States ---
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [recordToEdit, setRecordToEdit] = useState<FinancialWithActivity | null>(null);
+
+    // --- Async Operation State ---
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
+    const router = useRouter();
 
     // --- 数据过滤逻辑 ---
     const dateRange = useMemo(() => {
@@ -68,6 +85,69 @@ export function ReportsClient({ plots, activities, records }: {
         }, { income: 0, expense: 0 });
     }, [filteredRecords]);
 
+    // --- Event Handlers for Deletion ---
+    const handleDeleteRecord = (recordId: number) => {
+        const record = records.find(r => r.id === recordId);
+        if (record) {
+            setRecordToDelete(record);
+            setIsDeleteConfirmOpen(true);
+            setError(null);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!recordToDelete) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/records/${recordToDelete.id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '删除失败');
+            }
+            setIsDeleteConfirmOpen(false);
+            setRecordToDelete(null);
+            router.refresh(); // 刷新数据
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // --- Event Handlers for Editing ---
+    const handleEditRecord = (record: FinancialWithActivity) => {
+        setRecordToEdit(record);
+        setIsEditModalOpen(true);
+        setError(null);
+    };
+
+    const handleConfirmEdit = async (data: EditFinancialRecordPayload) => {
+        if (!recordToEdit) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/records/${recordToEdit.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '更新失败');
+            }
+            setIsEditModalOpen(false);
+            setRecordToEdit(null);
+            router.refresh(); // 刷新数据
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const getDateFilterText = () => {
         switch (dateFilter) {
             case 'month': return '本月';
@@ -82,81 +162,115 @@ export function ReportsClient({ plots, activities, records }: {
     const inactiveClass = 'bg-slate-200 text-slate-700 hover:bg-slate-300';
 
     return (
-        <div>
-            {/* 粘性头部 */}
-            <div className="sticky top-0 bg-slate-50 z-20 pt-4 border-b border-slate-200 shadow-sm">
-                <div className="bg-white rounded-t-lg px-4 pt-2">
-                    {/* 视图切换器 */}
-                    <div className="flex border-b border-slate-200">
-                        <button onClick={() => setActiveView('financial')} className={`px-4 py-3 text-sm font-medium transition-colors ${activeView === 'financial' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}>财务报告</button>
-                        <button onClick={() => setActiveView('activity')} className={`px-4 py-3 text-sm font-medium transition-colors ${activeView === 'activity' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}>农事日志</button>
-                    </div>
-
-                    {/* 日期筛选器 */}
-                    <div className="py-3 border-b border-slate-200">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                {(['month', 'quarter', 'year'] as DateFilter[]).map(d => (
-                                    <button key={d} onClick={() => setDateFilter(d)} className={`px-3 py-1.5 text-sm rounded-full ${dateFilter === d ? activeClass : inactiveClass}`}>
-                                        {d === 'month' && '本月'}{d === 'quarter' && '近三月'}{d === 'year' && '近一年'}
+        <>
+            <div>
+                {/* ... 粘性头部 ... */}
+                <div className="sticky top-0 bg-slate-50 z-20 pt-4 border-b border-slate-200 shadow-sm">
+                    <div className="bg-white rounded-t-lg px-4 pt-2">
+                        {/* ... 视图切换器 ... */}
+                        <div className="flex border-b border-slate-200">
+                            <button onClick={() => setActiveView('financial')} className={`px-4 py-3 text-sm font-medium transition-colors ${activeView === 'financial' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}>财务报告</button>
+                            <button onClick={() => setActiveView('activity')} className={`px-4 py-3 text-sm font-medium transition-colors ${activeView === 'activity' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}>农事日志</button>
+                        </div>
+                        {/* ... 日期筛选器 ... */}
+                        <div className="py-3 border-b border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    {(['month', 'quarter', 'year'] as DateFilter[]).map(d => (
+                                        <button key={d} onClick={() => setDateFilter(d)} className={`px-3 py-1.5 text-sm rounded-full ${dateFilter === d ? activeClass : inactiveClass}`}>
+                                            {d === 'month' && '本月'}{d === 'quarter' && '近三月'}{d === 'year' && '近一年'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative">
+                                    <button onClick={() => setDatePickerVisible(!isDatePickerVisible)} className={`px-3 py-1.5 text-sm rounded-full flex items-center ${dateFilter === 'custom' ? activeClass : inactiveClass}`}>
+                                        <Calendar className="w-4 h-4 mr-1.5"/>
+                                        {getDateFilterText()}
+                                        <ChevronDown className="w-4 h-4 ml-1.5"/>
                                     </button>
-                                ))}
-                            </div>
-                            <div className="relative">
-                                <button onClick={() => setDatePickerVisible(!isDatePickerVisible)} className={`px-3 py-1.5 text-sm rounded-full flex items-center ${dateFilter === 'custom' ? activeClass : inactiveClass}`}>
-                                    <Calendar className="w-4 h-4 mr-1.5" />
-                                    {getDateFilterText()}
-                                    <ChevronDown className="w-4 h-4 ml-1.5" />
-                                </button>
-                                {isDatePickerVisible && (
-                                    <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 w-72 space-y-3">
-                                        <div>
-                                            <label className="text-xs text-slate-600">开始日期</label>
-                                            <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({ ...p, start: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
+                                    {isDatePickerVisible && (
+                                        <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 w-72 space-y-3">
+                                            <div>
+                                                <label className="text-xs text-slate-600">开始日期</label>
+                                                <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({...p, start: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-600">结束日期</label>
+                                                <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({...p, end: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                            </div>
+                                            <button onClick={() => { setDateFilter('custom'); setDatePickerVisible(false); }} disabled={!customDate.start || !customDate.end} className="w-full bg-emerald-600 text-white py-2 rounded-md disabled:bg-slate-300">应用范围</button>
                                         </div>
-                                        <div>
-                                            <label className="text-xs text-slate-600">结束日期</label>
-                                            <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({ ...p, end: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
-                                        </div>
-                                        <button onClick={() => { setDateFilter('custom'); setDatePickerVisible(false); }} disabled={!customDate.start || !customDate.end} className="w-full bg-emerald-600 text-white py-2 rounded-md disabled:bg-slate-300">应用范围</button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
+                        {/* ... 类型筛选器 ... */}
+                        <div className="py-3">
+                            {activeView === 'financial' ? (
+                                <div className="flex space-x-2">
+                                    <button onClick={() => setFinancialFilter('all')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'all' ? activeClass : inactiveClass}`}>全部</button>
+                                    <button onClick={() => setFinancialFilter('income')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'income' ? 'bg-green-600 text-white' : inactiveClass}`}>收入</button>
+                                    <button onClick={() => setFinancialFilter('expense')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'expense' ? 'bg-red-600 text-white' : inactiveClass}`}>支出</button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setActivityFilter('all')} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === 'all' ? activeClass : inactiveClass}`}>全部地块</button>
+                                    {plots.map(plot => (
+                                        <button key={plot.id} onClick={() => setActivityFilter(plot.id)} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === plot.id ? activeClass : inactiveClass}`}>{plot.isArchived ? `${plot.name} (已归档)` : plot.name}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
-
-                    {/* 类型筛选器 */}
-                    <div className="py-3">
-                        {activeView === 'financial' ? (
-                            <div className="flex space-x-2">
-                                <button onClick={() => setFinancialFilter('all')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'all' ? activeClass : inactiveClass}`}>全部</button>
-                                <button onClick={() => setFinancialFilter('income')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'income' ? 'bg-green-600 text-white' : inactiveClass}`}>收入</button>
-                                <button onClick={() => setFinancialFilter('expense')} className={`px-3 py-1.5 text-sm rounded-full ${financialFilter === 'expense' ? 'bg-red-600 text-white' : inactiveClass}`}>支出</button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-wrap gap-2">
-                                <button onClick={() => setActivityFilter('all')} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === 'all' ? activeClass : inactiveClass}`}>全部地块</button>
-                                {plots.map(plot => (
-                                    <button key={plot.id} onClick={() => setActivityFilter(plot.id)} className={`px-3 py-1.5 text-sm rounded-full ${activityFilter === plot.id ? activeClass : inactiveClass}`}>{plot.isArchived ? (plot.name + '（已归档）') : plot.name}</button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* ... 财务摘要卡片 ... */}
+                    {activeView === 'financial' && (
+                        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-b-lg overflow-hidden">
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.income.toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.expense).toLocaleString()}</p></div>
+                            <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.income + summary.expense) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{(summary.income + summary.expense).toLocaleString()}</p></div>
+                        </div>
+                    )}
                 </div>
-                {/* 财务摘要卡片 */}
-                {activeView === 'financial' && (
-                    <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-b-lg overflow-hidden">
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.income.toLocaleString()}</p></div>
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.expense).toLocaleString()}</p></div>
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.income + summary.expense) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{(summary.income + summary.expense).toLocaleString()}</p></div>
-                    </div>
-                )}
+
+                {/* 内容区域 */}
+                <div className="p-4">
+                    {activeView === 'financial' ? <FinancialReportView records={filteredRecords} onEditRecord={handleEditRecord} onDeleteRecord={handleDeleteRecord} /> : <ActivityLogView activities={filteredActivities} />}
+                </div>
             </div>
 
-            {/* 内容区域 */}
-            <div className="p-4">
-                {activeView === 'financial' ? <FinancialReportView records={filteredRecords} /> : <ActivityLogView activities={filteredActivities} />}
-            </div>
-        </div>
+            {/* Deletion Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="确认删除"
+                confirmText="删除"
+                isLoading={isLoading}
+                error={error}
+            >
+                <p>您确定要删除这笔财务记录吗？</p>
+                {recordToDelete && <p className="mt-2 font-bold text-gray-800">{recordToDelete.description || recordToDelete.recordType} (¥{recordToDelete.amount.toLocaleString()})</p>}
+                <p className="mt-2 text-xs text-gray-500">此操作无法撤销。</p>
+            </ConfirmationModal>
+
+            {/* Edit Record Modal */}
+            {recordToEdit && (
+                <FormModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    title="编辑财务记录"
+                >
+                    <EditFinancialRecordForm
+                        record={recordToEdit}
+                        recordCategoryTypes={recordCategoryTypes}
+                        onSubmit={handleConfirmEdit}
+                        onCancel={() => setIsEditModalOpen(false)}
+                        isLoading={isLoading}
+                        error={error}
+                    />
+                </FormModal>
+            )}
+        </>
     );
 }
+

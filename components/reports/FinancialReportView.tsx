@@ -7,21 +7,17 @@ import { RecordItem } from './RecordItem';
 
 interface FinancialReportViewProps {
     records: FinancialWithActivity[];
+    onEditRecord: (record: FinancialWithActivity) => void;
+    onDeleteRecord: (recordId: number) => void;
 }
 
 /**
  * 财务报告视图 (纯列表)
- * 
- * 职责:
- * 1. 接收经过筛选的财务记录。
- * 2. 在客户端对记录进行分组和排序，以避免水合错误。
- * 3. 渲染财务明细列表。
  */
-export function FinancialReportView({ records }: FinancialReportViewProps) {
+export function FinancialReportView({ records, onEditRecord, onDeleteRecord }: FinancialReportViewProps) {
     const [groupedRecords, setGroupedRecords] = useState<Map<string, FinancialWithActivity[]>>(new Map());
 
     useEffect(() => {
-        // 将分组逻辑放在useEffect中，确保只在客户端执行
         const groups = new Map<string, FinancialWithActivity[]>();
         records.forEach(record => {
             const monthKey = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
@@ -31,7 +27,7 @@ export function FinancialReportView({ records }: FinancialReportViewProps) {
             groups.get(monthKey)!.push(record);
         });
         setGroupedRecords(groups);
-    }, [records]); // 当传入的records变化时，重新计算分组
+    }, [records]);
 
     const sortedMonths = Array.from(groupedRecords.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
@@ -43,7 +39,6 @@ export function FinancialReportView({ records }: FinancialReportViewProps) {
         );
     }
 
-    // 初始渲染或正在计算时，可以显示一个加载状态
     if (sortedMonths.length === 0 && records.length > 0) {
         return (
             <div className="text-center py-10 bg-white rounded-lg shadow-sm">
@@ -56,13 +51,18 @@ export function FinancialReportView({ records }: FinancialReportViewProps) {
         <div className="space-y-6">
             {sortedMonths.map(month => (
                 <div key={month}>
-                        <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[230px] bg-slate-100 z-10 rounded-md">{month}</h3>
-                        <div className="space-y-3">
-                            {groupedRecords.get(month)!.map(record => (
-                                <RecordItem key={record.id} record={record} />
-                            ))}
-                        </div>
+                    <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[230px] bg-slate-100 z-10 rounded-md">{month}</h3>
+                    <div className="space-y-3">
+                        {groupedRecords.get(month)!.map(record => (
+                            <RecordItem 
+                                key={record.id} 
+                                record={record} 
+                                onEdit={onEditRecord}
+                                onDelete={onDeleteRecord} 
+                            />
+                        ))}
                     </div>
+                </div>
             ))}
         </div>
     );
