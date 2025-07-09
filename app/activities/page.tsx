@@ -1,6 +1,6 @@
 // app/activities/page.tsx
 import { getAllActiviesDetails, getPlots } from '@/lib/data'
-import Activities from '@/components/activities/Activities'
+import Activities from '@/components/features/reports/Activities'
 import { PrismaPlots } from '@/lib/types'
 import { CalendarDays } from 'lucide-react'
 

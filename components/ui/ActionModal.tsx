@@ -3,9 +3,9 @@
 
 import { X, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { AddActivityForm } from '@/components/forms/AddActivityForm';
-import { AddFinancialRecordForm } from '@/components/forms/AddFinancialRecordForm';
-import { AddPlotForm } from '@/components/forms/AddPlotForm'; // 导入新的表单组件
+import { AddActivityForm } from '@/components/features/activities/forms/AddActivityForm';
+import { AddFinancialRecordForm } from '@/components/features/records/forms/AddFinancialRecordForm';
+import { AddPlotForm } from '@/components/features/plots/forms/AddPlotForm'; // 导入新的表单组件
 import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
 
 interface ActionModalProps {

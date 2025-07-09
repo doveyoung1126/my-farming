@@ -1,7 +1,7 @@
 // app/(dashboard)/page.tsx
 // import { getDashboardStats, getRecentActivities } from '@/lib/data';
 import { getAllActiviesDetails } from '@/lib/data'
-import ActivitiesList from '@/components/activities/ActivitiesList'
+import ActivitiesList from '@/components/features/reports/ActivitiesList'
 export default async function Home() {
 
   /*   const [stats, activities] = await Promise.all([

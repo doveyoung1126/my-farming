@@ -3,7 +3,7 @@
 
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { ActionModal } from '@/components/common/ActionModal';
+import { ActionModal } from '@/components/ui/ActionModal';
 import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 

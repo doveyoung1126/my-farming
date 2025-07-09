@@ -1,6 +1,6 @@
 // import { getFinancialSummary, getFinancialRecords } from '@/lib/data';
 import { getAllActiviesDetails } from '@/lib/data'
-import { Records } from '@/components/records/Records'
+import { Records } from '@/components/features/reports/Records'
 import { FinancialWithActivity } from '@/lib/types'
 import { CalendarDays } from 'lucide-react'
 

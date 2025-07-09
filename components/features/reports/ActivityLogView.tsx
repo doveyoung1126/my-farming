@@ -2,7 +2,7 @@
 'use client';
 
 import { ActivityWithFinancials } from "@/lib/types";
-import ActivitiesList from '@/components/activities/ActivitiesList';
+import ActivitiesList from '@/components/features/reports/ActivitiesList';
 
 /**
  * 农事日志视图 (纯列表)

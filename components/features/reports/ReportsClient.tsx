@@ -7,9 +7,9 @@ import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCateg
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
 import { Calendar, ChevronDown } from 'lucide-react';
-import { ConfirmationModal } from '../common/ConfirmationModal';
-import { FormModal } from '../common/FormModal';
-import { EditFinancialRecordForm, EditFinancialRecordPayload } from '../forms/EditFinancialRecordForm';
+import { ConfirmationModal } from '../../ui/ConfirmationModal';
+import { FormModal } from '../../ui/FormModal';
+import { EditFinancialRecordForm, EditFinancialRecordPayload } from '../records/forms/EditFinancialRecordForm';
 
 // --- 类型定义 ---
 type View = 'financial' | 'activity';
@@ -33,7 +33,7 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
     const [dateFilter, setDateFilter] = useState<DateFilter>('month');
     const [customDate, setCustomDate] = useState({ start: '', end: '' });
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-    
+
     // --- Modal States ---
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
@@ -43,7 +43,7 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
     // --- Async Operation State ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     const router = useRouter();
 
     // --- 数据过滤逻辑 ---
@@ -184,19 +184,19 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes 
                                 </div>
                                 <div className="relative">
                                     <button onClick={() => setDatePickerVisible(!isDatePickerVisible)} className={`px-3 py-1.5 text-sm rounded-full flex items-center ${dateFilter === 'custom' ? activeClass : inactiveClass}`}>
-                                        <Calendar className="w-4 h-4 mr-1.5"/>
+                                        <Calendar className="w-4 h-4 mr-1.5" />
                                         {getDateFilterText()}
-                                        <ChevronDown className="w-4 h-4 ml-1.5"/>
+                                        <ChevronDown className="w-4 h-4 ml-1.5" />
                                     </button>
                                     {isDatePickerVisible && (
                                         <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 w-72 space-y-3">
                                             <div>
                                                 <label className="text-xs text-slate-600">开始日期</label>
-                                                <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({...p, start: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                                <input type="date" value={customDate.start} onChange={e => setCustomDate(p => ({ ...p, start: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
                                             </div>
                                             <div>
                                                 <label className="text-xs text-slate-600">结束日期</label>
-                                                <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({...p, end: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-md mt-1"/>
+                                                <input type="date" value={customDate.end} onChange={e => setCustomDate(p => ({ ...p, end: e.target.value }))} className="w-full p-2 border border-slate-300 rounded-md mt-1" />
                                             </div>
                                             <button onClick={() => { setDateFilter('custom'); setDatePickerVisible(false); }} disabled={!customDate.start || !customDate.end} className="w-full bg-emerald-600 text-white py-2 rounded-md disabled:bg-slate-300">应用范围</button>
                                         </div>

@@ -2,15 +2,15 @@
 'use client';
 
 import { ActivityCycle, PrismaPlots } from "@/lib/types";
-import { OngoingCycleCard } from "@/components/newdashboard/OngoingCycleCard";
-import { CompletedCycleCard } from "@/components/newdashboard/CompletedCycleCard";
+import { OngoingCycleCard } from "@/components/features/dashboard/OngoingCycleCard";
+import { CompletedCycleCard } from "@/components/features/dashboard/CompletedCycleCard";
 import { useState } from "react";
-import { EditPlotForm, EditPlotPayload } from "@/components/forms/EditPlotForm";
+import { EditPlotForm, EditPlotPayload } from "@/components/features/plots/forms/EditPlotForm";
 import { useRouter } from "next/navigation";
 import { PlotDetailHeader } from "./PlotDetailHeader";
 import { getActivitiesRecordsSummary } from "@/lib/data";
-import { ConfirmationModal } from "@/components/common/ConfirmationModal";
-import { FormModal } from "@/components/common/FormModal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
+import { FormModal } from "@/components/ui/FormModal";
 
 export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: ActivityCycle[] }) {
     // --- State for Modals ---

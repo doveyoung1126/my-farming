@@ -1,7 +1,7 @@
 // app/plots/[id]/page.tsx
 import { getPlotDetails } from "@/lib/data";
 import { notFound } from "next/navigation";
-import { PlotDetailClient } from "@/components/plots/PlotDetailClient";
+import { PlotDetailClient } from "@/components/features/plots/PlotDetailClient";
 
 export default async function PlotDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params

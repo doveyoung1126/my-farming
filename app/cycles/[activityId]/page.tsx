@@ -1,7 +1,7 @@
 import { getCycleDetailsById, getActivitiesRecordsSummary } from "@/lib/data";
 import { notFound } from "next/navigation";
-import { CycleDetailClient } from "@/components/cycles/CycleDetailClient";
-import { CycleDetailHeader } from "@/components/cycles/CycleDetailHeader";
+import { CycleDetailClient } from "@/components/features/cycles/CycleDetailClient";
+import { CycleDetailHeader } from "@/components/features/cycles/CycleDetailHeader";
 
 export default async function CycleDetailPage({ params }: { params: Promise<{ activityId: string }> }) {
     const { activityId } = await params

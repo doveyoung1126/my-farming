@@ -1,7 +1,7 @@
 // app/plots/page.tsx
 import { getPlots } from "@/lib/data";
-import { PlotsClient } from "@/components/plots/PlotsClient";
-import { PlotsHeader } from "@/components/plots/PlotsHeader"; // 引入新的 Header
+import { PlotsClient } from "@/components/features/plots/PlotsClient";
+import { PlotsHeader } from "@/components/layout/PlotsHeader"; // 引入新的 Header
 
 export default async function PlotsPage(
     props: {

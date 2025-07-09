@@ -1,10 +1,10 @@
 // app/newdashboard/page.tsx
 import { getAllActiviesDetails, getPlots, getPlotCycles, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
 import { ActivityCycle, PrismaPlots, ActivityWithFinancials, ActivityType, RecordCategoryType } from '@/lib/types';
-import { OngoingCycleCard } from '@/components/newdashboard/OngoingCycleCard';
-import { CompletedCycleCard } from '@/components/newdashboard/CompletedCycleCard';
+import { OngoingCycleCard } from '@/components/features/dashboard/OngoingCycleCard';
+import { CompletedCycleCard } from '@/components/features/dashboard/CompletedCycleCard';
 import Link from 'next/link';
-import { DashboardActions } from '@/components/newdashboard/DashboardActions'; // 导入新的客户端组件
+import { DashboardActions } from '@/components/features/dashboard/DashboardActions'; // 导入新的客户端组件
 
 export default async function NewDashboardPage() {
 

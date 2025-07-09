@@ -3,8 +3,8 @@
 
 import { useState } from 'react';
 import { ActivityCycle, FinancialWithActivity } from "@/lib/types";
-import ActivitiesList from '@/components/activities/ActivitiesList';
-import { RecordItem } from '@/components/reports/RecordItem';
+import ActivitiesList from '@/components/features/reports/ActivitiesList';
+import { RecordItem } from '@/components/features/reports/RecordItem';
 
 export function CycleDetailClient({ cycle }: { cycle: ActivityCycle }) {
     const [activeView, setActiveView] = useState('activity'); // 默认显示农事日志

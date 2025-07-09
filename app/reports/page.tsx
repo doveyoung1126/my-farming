@@ -1,6 +1,6 @@
 // app/reports/page.tsx
 import { getAllActiviesDetails, getPlots, getRecordCategoryTypes, getRecordsWithActivity } from '@/lib/data';
-import { ReportsClient } from '@/components/reports/ReportsClient';
+import { ReportsClient } from '@/components/features/reports/ReportsClient';
 
 /**
  * 分析报告页面 (服务端组件)
