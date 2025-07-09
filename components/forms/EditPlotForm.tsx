@@ -1,54 +1,36 @@
 // components/forms/EditPlotForm.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { PrismaPlots } from '@/lib/types';
 
-interface EditPlotFormProps {
-    plot: PrismaPlots;
-    onSuccess: () => void;
-    onCancel: () => void;
+export interface EditPlotPayload {
+    name: string;
+    area: number;
+    crop: string | null;
 }
 
-export function EditPlotForm({ plot, onSuccess, onCancel }: EditPlotFormProps) {
+interface EditPlotFormProps {
+    plot: PrismaPlots;
+    onSubmit: (data: EditPlotPayload) => void;
+    onCancel: () => void;
+    isLoading: boolean;
+    error: string | null;
+}
+
+export function EditPlotForm({ plot, onSubmit, onCancel, isLoading, error }: EditPlotFormProps) {
     const [name, setName] = useState(plot.name);
     const [area, setArea] = useState(plot.area.toString());
     const [crop, setCrop] = useState(plot.crop || '');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const payload = {
-                name: name,
-                area: parseFloat(area),
-                crop: crop || null,
-            };
-
-            const response = await fetch(`/api/plots/${plot.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新失败');
-            }
-
-            onSuccess(); // 调用成功回调
-        } catch (err: any) {
-            setError(err.message || '发生未知错误');
-        } finally {
-            setIsLoading(false);
-        }
+        onSubmit({
+            name: name,
+            area: parseFloat(area),
+            crop: crop || null,
+        });
     };
 
     return (
@@ -97,6 +79,7 @@ export function EditPlotForm({ plot, onSuccess, onCancel }: EditPlotFormProps) {
                     type="button" 
                     onClick={onCancel} 
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                    disabled={isLoading}
                 >
                     取消
                 </button>
