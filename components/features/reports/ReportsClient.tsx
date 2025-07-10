@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'; // Import useSearchParams
 import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType, ActivityType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
@@ -21,10 +21,10 @@ type DateFilter = 'month' | 'quarter' | 'year' | 'custom';
 /**
  * 报告页面的客户端容器组件
  */
-export function ReportsClient({ plots, activities, records, recordCategoryTypes, activityTypes }: {
-    plots: PrismaPlots[];
+export function ReportsClient({ activities, records, plots, recordCategoryTypes, activityTypes }: {
     activities: ActivityWithFinancials[];
     records: FinancialWithActivity[];
+    plots: PrismaPlots[];
     recordCategoryTypes: RecordCategoryType[];
     activityTypes: ActivityType[]; // Add activityTypes prop
 }) {
@@ -36,19 +36,63 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes,
     const [customDate, setCustomDate] = useState({ start: '', end: '' });
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-    // --- Modal States ---
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [recordToEdit, setRecordToEdit] = useState<FinancialWithActivity | null>(null);
-    const [isEditActivityModalOpen, setIsEditActivityModalOpen] = useState(false); // New state for activity edit modal
-    const [activityToEdit, setActivityToEdit] = useState<ActivityWithFinancials | null>(null); // New state for activity to edit
-
     // --- Async Operation State ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams(); // Initialize useSearchParams
+    const editActivityId = searchParams.get('editActivity'); // Get activity ID from URL
+    const editRecordId = searchParams.get('editRecord'); // Get record ID from URL
+
+    // 根据ID从列表中查找要编辑的对象
+    const activityToEdit = useMemo(() => {
+        if (!editActivityId) return null;
+        return activities.find(a => a.id === parseInt(editActivityId));
+    }, [editActivityId, activities]);
+
+    const recordToEdit = useMemo(() => {
+        if (!editRecordId) return null;
+        return records.find(r => r.id === parseInt(editRecordId));
+    }, [editRecordId, records]);
+
+    const handleCloseModal = () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('editActivity');
+        params.delete('editRecord');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    // 添加处理提交的函数
+    const handleConfirmEditActivity = async (data: any) => {
+        if (!activityToEdit) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/activities/${activityToEdit.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '更新农事活动失败');
+            }
+            handleCloseModal(); // 关闭模态框
+            router.refresh();   // 刷新页面数据
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // --- Modal States for Financial Records (unchanged) ---
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    // const [recordToEdit, setRecordToEdit] = useState<FinancialWithActivity | null>(null);
 
     // --- 数据过滤逻辑 ---
     const dateRange = useMemo(() => {
@@ -90,98 +134,10 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes,
     }, [filteredRecords]);
 
     // --- Event Handlers for Deletion ---
-    const handleDeleteRecord = (recordId: number) => {
-        const record = records.find(r => r.id === recordId);
-        if (record) {
-            setRecordToDelete(record);
-            setIsDeleteConfirmOpen(true);
-            setError(null);
-        }
-    };
 
-    const handleConfirmDelete = async () => {
-        if (!recordToDelete) return;
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/records/${recordToDelete.id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '删除失败');
-            }
-            setIsDeleteConfirmOpen(false);
-            setRecordToDelete(null);
-            router.refresh(); // 刷新数据
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     // --- Event Handlers for Editing ---
-    const handleEditRecord = (record: FinancialWithActivity) => {
-        setRecordToEdit(record);
-        setIsEditModalOpen(true);
-        setError(null);
-    };
 
-    const handleEditActivity = (activity: ActivityWithFinancials) => {
-        setActivityToEdit(activity);
-        setIsEditActivityModalOpen(true);
-        setError(null);
-        console.log(activity)
-    };
-
-    const handleConfirmEdit = async (data: EditFinancialRecordPayload) => {
-        if (!recordToEdit) return;
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/records/${recordToEdit.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新失败');
-            }
-            setIsEditModalOpen(false);
-            setRecordToEdit(null);
-            router.refresh(); // 刷新数据
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleConfirmEditActivity = async (data: ActivityWithFinancials) => {
-        if (!activityToEdit) return;
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/activities/${activityToEdit.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新农事活动失败');
-            }
-            setIsEditActivityModalOpen(false);
-            setActivityToEdit(null);
-            router.refresh(); // 刷新数据
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const getDateFilterText = () => {
         switch (dateFilter) {
@@ -269,59 +225,33 @@ export function ReportsClient({ plots, activities, records, recordCategoryTypes,
 
                 {/* 内容区域 */}
                 <div className="p-4">
-                    {activeView === 'financial' ? <FinancialReportView records={filteredRecords} onEditRecord={handleEditRecord} onDeleteRecord={handleDeleteRecord} /> : <ActivityLogView activities={filteredActivities} onEditActivity={handleEditActivity} />}
+                    {activeView === 'financial' ? <FinancialReportView records={filteredRecords} /> : <ActivityLogView activities={filteredActivities} />}
                 </div>
             </div>
+            {activityToEdit && (
+                <FormModal
+                    isOpen={true}
+                    onClose={handleCloseModal}
+                    title="编辑农事活动"
+                >
+                    <EditActivityForm
+                        initialActivity={activityToEdit} // 传递完整的对象
+                        activityTypes={activityTypes}
+                        plots={plots}
+                        recordCategoryTypes={recordCategoryTypes}
+                    />
+                </FormModal>
+            )}
 
-            {/* Deletion Confirmation Modal */}
-            <ConfirmationModal
-                isOpen={isDeleteConfirmOpen}
-                onClose={() => setIsDeleteConfirmOpen(false)}
-                onConfirm={handleConfirmDelete}
-                title="确认删除"
-                confirmText="删除"
-                isLoading={isLoading}
-                error={error}
-            >
-                <p>您确定要删除这笔财务记录吗？</p>
-                {recordToDelete && <p className="mt-2 font-bold text-gray-800">{recordToDelete.description || recordToDelete.recordType} (¥{recordToDelete.amount.toLocaleString()})</p>}
-                <p className="mt-2 text-xs text-gray-500">此操作无法撤销。</p>
-            </ConfirmationModal>
-
-            {/* Edit Record Modal */}
             {recordToEdit && (
                 <FormModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
+                    isOpen={true}
+                    onClose={handleCloseModal}
                     title="编辑财务记录"
                 >
                     <EditFinancialRecordForm
                         record={recordToEdit}
                         recordCategoryTypes={recordCategoryTypes}
-                        onSubmit={handleConfirmEdit}
-                        onCancel={() => setIsEditModalOpen(false)}
-                        isLoading={isLoading}
-                        error={error}
-                    />
-                </FormModal>
-            )}
-
-            {/* Edit Activity Modal */}
-            {activityToEdit && (
-                <FormModal
-                    isOpen={isEditActivityModalOpen}
-                    onClose={() => setIsEditActivityModalOpen(false)}
-                    title="编辑农事活动"
-                >
-                    <EditActivityForm
-                        initialActivity={activityToEdit}
-                        activityTypes={activityTypes} // Corrected prop
-                        plots={plots}
-                        recordCategoryTypes={recordCategoryTypes}
-                        onSubmit={handleConfirmEditActivity}
-                        onCancel={() => setIsEditActivityModalOpen(false)}
-                        isLoading={isLoading}
-                        error={error}
                     />
                 </FormModal>
             )}

@@ -2,6 +2,8 @@
 import { ActivityWithFinancials } from '@/lib/types'
 import { calculateFinancials } from '@/lib/utils';
 import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 // 活动类型图标映射
 const activityIcons: Record<string, React.JSX.Element> = {
@@ -16,12 +18,20 @@ const activityIcons: Record<string, React.JSX.Element> = {
 };
 
 const ActivitiesList = ({
-    activities,
-    onEditActivity
+    activities
 }: {
     activities: ActivityWithFinancials[];
-    onEditActivity?: (activity: ActivityWithFinancials) => void; // Make it optional
 }) => {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Helper to create new URL with updated search params
+    const createUrl = (paramName: string, paramValue: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set(paramName, paramValue);
+        return `${pathname}?${params.toString()}`;
+    };
+
     return (
         <div className="space-y-3 mb-20">
             {activities.map((activity) => {
@@ -55,15 +65,15 @@ const ActivitiesList = ({
                                             <CalendarDays className="w-4 h-4 mr-1 text-gray-400" />
                                             {activity.date.toLocaleDateString('zh-CN')}
                                         </span>
-                                        {onEditActivity && (
-                                            <button
-                                                onClick={() => onEditActivity(activity)}
+                                        {/* Edit Button */}
+                                        <Link
+                                                href={createUrl('editActivity', activity.id.toString())}
+                                                scroll={false} // Prevent scrolling to top on URL change
                                                 className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
                                                 aria-label="编辑活动"
                                             >
                                                 <Pencil className="w-4 h-4" />
-                                            </button>
-                                        )}
+                                        </Link>
                                     </div>
                                 </div>
 

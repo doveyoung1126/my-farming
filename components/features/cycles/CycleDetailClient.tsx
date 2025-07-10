@@ -36,8 +36,8 @@ export function CycleDetailClient({ cycle }: { cycle: ActivityCycle }) {
 
             {/* 内容区域 */}
             <div className="p-4">
-                {activeView === 'financial' ? 
-                    <FinancialRecordListView records={records} /> : 
+                {activeView === 'financial' ?
+                    <FinancialRecordListView records={records} /> :
                     <ActivitiesList activities={cycle.activities} />
                 }
             </div>

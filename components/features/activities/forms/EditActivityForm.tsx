@@ -2,82 +2,136 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ActivityType, PrismaPlots, RecordCategoryType, ActivityWithFinancials } from '@/lib/types';
 import { Plus, Minus, Loader2 } from 'lucide-react';
 
+// --- Props 接口 ---
 interface EditActivityFormProps {
     activityTypes: ActivityType[];
     plots: PrismaPlots[];
     recordCategoryTypes: RecordCategoryType[];
-    onSubmit: (data: any) => void; // Use 'any' for now, will define specific payload type later if needed
-    onCancel: () => void;
-    isLoading: boolean;
-    error: string | null;
-    initialActivity: ActivityWithFinancials; // Add initialActivity prop
+    initialActivity: ActivityWithFinancials;
 }
 
 interface FinancialRecordForm {
-    id?: number; // Add id for existing records
+    id?: number;
     amount: string;
     recordTypeId: string;
     description: string;
     date: string;
 }
 
-export function EditActivityForm({ activityTypes, plots, recordCategoryTypes, onSubmit, onCancel, isLoading, error, initialActivity }: EditActivityFormProps) {
-    const [activityTypeId, setActivityTypeId] = useState(''); // Initialize as empty string
+export function EditActivityForm({
+    activityTypes,
+    plots,
+    recordCategoryTypes,
+    initialActivity,
+}: EditActivityFormProps) {
+    
+    // --- 内部状态管理 ---
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [activityTypeId, setActivityTypeId] = useState('');
     const [date, setDate] = useState(initialActivity.date.toISOString().split('T')[0]);
     const [plotId, setPlotId] = useState(initialActivity.plotId.toString());
     const [crop, setCrop] = useState(initialActivity.crop || '');
     const [budget, setBudget] = useState(initialActivity.budget?.toString() || '');
-    const [records, setRecords] = useState<FinancialRecordForm[]>([]); // Initialize as empty array, will be populated by useEffect
-    const [showFinancials, setShowFinancials] = useState(initialActivity.records.length > 0); // Show financials if there are existing records
+    const [records, setRecords] = useState<FinancialRecordForm[]>([]);
+    const [showFinancials, setShowFinancials] = useState(initialActivity.records.length > 0);
 
-    // Effect to set initial activityTypeId based on name
+    // --- Hooks for URL management ---
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // --- 用传入的 initialActivity 初始化表单 --- 
     useEffect(() => {
         const type = activityTypes.find(t => t.name === initialActivity.type);
         if (type) {
             setActivityTypeId(type.id.toString());
         }
-    }, [initialActivity.type, activityTypes]);
 
-    // Effect to set initial recordTypeIds for financial records based on name
-    useEffect(() => {
-        // Do not map records until the category types are loaded.
-        if (recordCategoryTypes.length === 0) {
-            // If there are records but no types to map them, wait.
-            // If there are no records, ensure the form state is empty.
-            if (initialActivity.records.length === 0) {
-                setRecords([]);
-            }
-            return;
+        if (initialActivity.records.length > 0 && recordCategoryTypes.length > 0) {
+            const mappedRecords = initialActivity.records.map(rec => {
+                const recordType = recordCategoryTypes.find(t => t.name === rec.recordType);
+                return {
+                    id: rec.id,
+                    amount: rec.amount.toString(),
+                    recordTypeId: recordType ? recordType.id.toString() : '',
+                    description: rec.description || '',
+                    date: rec.date.toISOString().split('T')[0],
+                };
+            });
+            setRecords(mappedRecords);
         }
+    }, [initialActivity, activityTypes, recordCategoryTypes]);
 
-        const mappedRecords = initialActivity.records.map(rec => {
-            const recordType = recordCategoryTypes.find(t => t.name === rec.recordType);
-            return {
+    // --- URL清理函数 ---
+    const clearUrlAndClose = () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('editActivity');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    // --- 内部提交逻辑 ---
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+
+        const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
+        const showBudgetField = selectedActivityType?.cycleMarker === 'START';
+
+        const payload = {
+            id: initialActivity.id,
+            activityTypeId: parseInt(activityTypeId),
+            date: new Date(date),
+            plotId: parseInt(plotId),
+            crop: crop || null,
+            budget: showBudgetField && budget ? parseFloat(budget) : null,
+            records: showFinancials ? records.map(rec => ({
                 id: rec.id,
-                amount: rec.amount.toString(),
-                recordTypeId: recordType ? recordType.id.toString() : '', // Find ID by name
-                description: rec.description || '',
-                date: rec.date.toISOString().split('T')[0],
-            };
-        });
-        setRecords(mappedRecords);
-    }, [initialActivity.records, recordCategoryTypes]);
+                amount: parseFloat(rec.amount),
+                recordTypeId: parseInt(rec.recordTypeId),
+                description: rec.description || null,
+                date: new Date(rec.date),
+            })) : [],
+        };
 
-    // 根据选择的活动类型，判断是否显示预算字段
+        try {
+            const response = await fetch(`/api/activities/${initialActivity.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '更新农事活动失败');
+            }
+            
+            router.refresh();
+            clearUrlAndClose(); // 成功后自己清理URL
+
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // --- 其他辅助逻辑 ---
     const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
     const showBudgetField = selectedActivityType?.cycleMarker === 'START';
 
-    // 自动填充作物字段
     useEffect(() => {
         if (plotId) {
             const selectedPlot = plots.find(p => p.id === parseInt(plotId));
             if (selectedPlot?.crop) {
                 setCrop(selectedPlot.crop);
             } else {
-                setCrop(''); // 如果地块没有作物，则清空
+                setCrop('');
             }
         }
     }, [plotId, plots]);
@@ -96,31 +150,9 @@ export function EditActivityForm({ activityTypes, plots, recordCategoryTypes, on
         setRecords(newRecords);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const payload = {
-            id: initialActivity.id, // Include activity ID for update
-            activityTypeId: parseInt(activityTypeId), // Ensure it's a number
-            date: new Date(date), // Convert to Date object
-            plotId: parseInt(plotId), // Ensure it's a number
-            crop: crop || null,
-            budget: showBudgetField && budget ? parseFloat(budget) : null,
-            records: showFinancials ? records.map(rec => ({
-                id: rec.id, // Include ID for existing/new records
-                amount: parseFloat(rec.amount),
-                recordTypeId: parseInt(rec.recordTypeId),
-                description: rec.description || null,
-                date: new Date(rec.date), // Convert to Date object
-            })) : [],
-        };
-
-        onSubmit(payload);
-    };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
-
+            {error && <div className="text-red-500 bg-red-50 p-3 rounded-md">{error}</div>}
 
             {/* 活动基本信息 */}
             <div>
@@ -150,7 +182,7 @@ export function EditActivityForm({ activityTypes, plots, recordCategoryTypes, on
                 >
                     <option value="">请选择地块</option>
                     {plots.map(plot => (
-                        <option key={plot.id} value={plot.id}>{plot.name}</option>
+                        <option key={plot.id} value={plot.id.toString()}>{plot.name}</option>
                     ))}
                 </select>
             </div>
@@ -278,7 +310,7 @@ export function EditActivityForm({ activityTypes, plots, recordCategoryTypes, on
             <div className="flex justify-end space-x-3 pt-4">
                 <button
                     type="button"
-                    onClick={onCancel}
+                    onClick={clearUrlAndClose} // 取消按钮也清理URL
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     取消

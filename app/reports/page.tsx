@@ -1,18 +1,18 @@
 // app/reports/page.tsx
 import { getAllActiviesDetails, getPlots, getRecordCategoryTypes, getRecordsWithActivity, getActivityTypes } from '@/lib/data';
 import { ReportsClient } from '@/components/features/reports/ReportsClient';
+import { ReportsProvider } from '@/components/features/reports/ReportsProvider';
 
 /**
  * 分析报告页面 (服务端组件)
  * 
  * 职责:
- * 1. 从服务器独立获取所有需要的基础数据 (地块、活动、财务记录)。
- * 2. 将原始数据直接传递给客户端组件 `ReportsClient` 进行渲染和交互。
+ * 1. 从服务器独立获取所有需要的基础数据。
+ * 2. 将数据传递给 ReportsProvider，由它来管理状态和交互。
  */
 export default async function ReportsPage() {
 
-    // 1. 并行获取所有必需的数据，确保数据来源独立
-    // 对于报告页面，我们需要获取所有地块（包括已归档的）以确保历史数据的完整性。
+    // 1. 并行获取所有必需的数据
     const [plots, activities, records, recordCategoryTypes, activityTypes] = await Promise.all([
         getPlots(true), // 传入 true 来获取所有地块
         getAllActiviesDetails(),
@@ -20,6 +20,9 @@ export default async function ReportsPage() {
         getRecordCategoryTypes(), // 获取财务记录类型
         getActivityTypes() // Fetch activity types
     ]);
+
+    // 准备要传递给 Provider 的初始数据 (不包含 plots)
+    const providerInitialData = { plots, activityTypes, recordCategoryTypes };
 
     return (
         <div className="h-full flex flex-col bg-slate-50 pb-16">
@@ -29,10 +32,10 @@ export default async function ReportsPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto">
-                <ReportsClient 
-                    plots={plots} 
-                    activities={activities} 
-                    records={records} 
+                <ReportsClient
+                    plots={plots}
+                    activities={activities}
+                    records={records}
                     recordCategoryTypes={recordCategoryTypes}
                     activityTypes={activityTypes} // Pass activityTypes
                 />

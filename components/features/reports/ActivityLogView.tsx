@@ -13,11 +13,11 @@ import ActivitiesList from '@/components/features/reports/ActivitiesList';
  */
 import { Pencil } from 'lucide-react'; // Import Pencil icon
 
-export function ActivityLogView({ activities, onEditActivity }: { activities: ActivityWithFinancials[]; onEditActivity?: (activity: ActivityWithFinancials) => void; }) {
+export function ActivityLogView({ activities }: { activities: ActivityWithFinancials[]; }) {
     return (
         <div>
             {activities.length > 0 ? (
-                <ActivitiesList activities={activities} onEditActivity={onEditActivity} />
+                <ActivitiesList activities={activities} />
             ) : (
                 <div className="text-center py-10 bg-white rounded-lg shadow-sm">
                     <p className="text-gray-500">在当前筛选条件下没有找到农事活动。</p>

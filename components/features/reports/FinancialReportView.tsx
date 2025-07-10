@@ -5,16 +5,10 @@ import { useState, useEffect } from 'react';
 import { FinancialWithActivity } from "@/lib/types";
 import { RecordItem } from './RecordItem';
 
-interface FinancialReportViewProps {
-    records: FinancialWithActivity[];
-    onEditRecord: (record: FinancialWithActivity) => void;
-    onDeleteRecord: (recordId: number) => void;
-}
-
 /**
  * 财务报告视图 (纯列表)
  */
-export function FinancialReportView({ records, onEditRecord, onDeleteRecord }: FinancialReportViewProps) {
+export function FinancialReportView({ records }: { records: FinancialWithActivity[] }) {
     const [groupedRecords, setGroupedRecords] = useState<Map<string, FinancialWithActivity[]>>(new Map());
 
     useEffect(() => {
@@ -54,11 +48,9 @@ export function FinancialReportView({ records, onEditRecord, onDeleteRecord }: F
                     <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[230px] bg-slate-100 z-10 rounded-md">{month}</h3>
                     <div className="space-y-3">
                         {groupedRecords.get(month)!.map(record => (
-                            <RecordItem 
-                                key={record.id} 
-                                record={record} 
-                                onEdit={onEditRecord}
-                                onDelete={onDeleteRecord} 
+                            <RecordItem
+                                key={record.id}
+                                record={record}
                             />
                         ))}
                     </div>

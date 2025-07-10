@@ -1,56 +1,97 @@
-// components/forms/EditFinancialRecordForm.tsx
+// components/records/forms/EditFinancialRecordForm.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { FinancialWithActivity, RecordCategoryType } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
-// 定义表单提交的数据结构
 export interface EditFinancialRecordPayload {
     amount: number;
     recordTypeId: number;
-    date: string;
-    description: string;
+    date: Date;
+    description: string | null;
 }
 
 interface EditFinancialRecordFormProps {
     record: FinancialWithActivity;
     recordCategoryTypes: RecordCategoryType[];
-    onSubmit: (data: EditFinancialRecordPayload) => void;
-    onCancel: () => void;
-    isLoading: boolean;
-    error: string | null;
 }
 
-export function EditFinancialRecordForm({ record, recordCategoryTypes, onSubmit, onCancel, isLoading, error }: EditFinancialRecordFormProps) {
+export function EditFinancialRecordForm({
+    record,
+    recordCategoryTypes,
+}: EditFinancialRecordFormProps) {
+
+    // --- 内部状态管理 ---
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [amount, setAmount] = useState(record.amount.toString());
-    const [recordTypeId, setRecordTypeId] = useState('');
+    const [recordTypeId, setRecordTypeId] = useState(''); // 初始化为空
     const [date, setDate] = useState(new Date(record.date).toISOString().split('T')[0]);
     const [description, setDescription] = useState(record.description || '');
 
+    // --- Hooks for URL management ---
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // --- 正确的初始化逻辑 ---
     useEffect(() => {
-        // 当 record 或 recordCategoryTypes 变化时，重新查找并设置 recordTypeId
-        const type = recordCategoryTypes.find(t => t.name === record.recordType);
-        if (type) {
-            setRecordTypeId(type.id.toString());
+        if (record && recordCategoryTypes.length > 0) {
+            const type = recordCategoryTypes.find(t => t.name === record.recordType);
+            if (type) {
+                setRecordTypeId(type.id.toString());
+            }
         }
     }, [record, recordCategoryTypes]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // --- URL清理函数 ---
+    const clearUrlAndClose = () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('editRecord');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    // --- 内部提交逻辑 ---
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+
         const payload: EditFinancialRecordPayload = {
             amount: parseFloat(amount),
-            recordTypeId: parseInt(recordTypeId, 10),
-            date: date,
-            description: description,
+            recordTypeId: parseInt(recordTypeId),
+            date: new Date(date),
+            description: description || null,
         };
-        onSubmit(payload);
+
+        try {
+            const response = await fetch(`/api/records/${record.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '更新失败');
+            }
+
+            router.refresh();
+            clearUrlAndClose();
+
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
-
+        <form onSubmit={handleSubmit} className="space-y-4 p-4">
+            {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
+            
             <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
                 <input
@@ -76,7 +117,7 @@ export function EditFinancialRecordForm({ record, recordCategoryTypes, onSubmit,
                 >
                     <option value="">请选择财务类型</option>
                     {recordCategoryTypes.map(type => (
-                        <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
+                        <option key={type.id} value={type.id.toString()}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                     ))}
                 </select>
             </div>
@@ -101,15 +142,15 @@ export function EditFinancialRecordForm({ record, recordCategoryTypes, onSubmit,
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    placeholder="例如：购买种子"
                 />
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">
                 <button
                     type="button"
-                    onClick={onCancel}
+                    onClick={clearUrlAndClose} // 直接调用内部函数
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                    disabled={isLoading}
                 >
                     取消
                 </button>
@@ -119,7 +160,7 @@ export function EditFinancialRecordForm({ record, recordCategoryTypes, onSubmit,
                     disabled={isLoading}
                 >
                     {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    保存更改
+                    保存记录
                 </button>
             </div>
         </form>
