@@ -7,9 +7,10 @@ import Link from 'next/link';
 
 interface RecordItemProps {
     record: FinancialWithActivity;
+    isEditAble?: boolean
 }
 
-export function RecordItem({ record }: RecordItemProps) {
+export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
     const isIncome = record.recordCategory === 'income';
 
     return (
@@ -58,7 +59,7 @@ export function RecordItem({ record }: RecordItemProps) {
                             {new Date(record.date).toLocaleDateString('zh-CN', { year: "numeric", month: 'numeric', day: 'numeric' })}
                         </span>
                     </div>
-                    <div className="flex items-center mt-2 space-x-4">
+                    {isEditAble && (<div className="flex items-center mt-2 space-x-4">
                         <Link
                             href={{ query: { editRecord: record.id } }}
                             scroll={false}
@@ -77,7 +78,7 @@ export function RecordItem({ record }: RecordItemProps) {
                             <Trash2 className="w-3 h-3 mr-1" />
                             删除
                         </Link>
-                    </div>
+                    </div>)}
                 </div>
             </div>
         </div>

@@ -45,12 +45,13 @@ export function FinancialReportView({ records }: { records: FinancialWithActivit
         <div className="space-y-6">
             {sortedMonths.map(month => (
                 <div key={month}>
-                    <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[230px] bg-slate-100 z-10 rounded-md">{month}</h3>
+                    <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[252px] bg-slate-100 z-10 rounded-md">{month}</h3>
                     <div className="space-y-3">
                         {groupedRecords.get(month)!.map(record => (
                             <RecordItem
                                 key={record.id}
                                 record={record}
+                                isEditAble
                             />
                         ))}
                     </div>

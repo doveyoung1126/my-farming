@@ -18,9 +18,11 @@ const activityIcons: Record<string, React.JSX.Element> = {
 };
 
 const ActivitiesList = ({
-    activities
+    activities,
+    isEditAble = false
 }: {
     activities: ActivityWithFinancials[];
+    isEditAble?: boolean
 }) => {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -66,14 +68,14 @@ const ActivitiesList = ({
                                             {activity.date.toLocaleDateString('zh-CN')}
                                         </span>
                                         {/* Edit Button */}
-                                        <Link
-                                                href={createUrl('editActivity', activity.id.toString())}
-                                                scroll={false} // Prevent scrolling to top on URL change
-                                                className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                                                aria-label="编辑活动"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                        </Link>
+                                        {isEditAble && (<Link
+                                            href={createUrl('editActivity', activity.id.toString())}
+                                            scroll={false} // Prevent scrolling to top on URL change
+                                            className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                                            aria-label="编辑活动"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </Link>)}
                                     </div>
                                 </div>
 

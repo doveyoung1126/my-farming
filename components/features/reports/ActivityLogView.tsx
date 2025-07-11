@@ -17,7 +17,7 @@ export function ActivityLogView({ activities }: { activities: ActivityWithFinanc
     return (
         <div>
             {activities.length > 0 ? (
-                <ActivitiesList activities={activities} />
+                <ActivitiesList activities={activities} isEditAble />
             ) : (
                 <div className="text-center py-10 bg-white rounded-lg shadow-sm">
                     <p className="text-gray-500">在当前筛选条件下没有找到农事活动。</p>
