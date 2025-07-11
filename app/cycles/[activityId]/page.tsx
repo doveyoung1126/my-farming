@@ -1,4 +1,4 @@
-import { getCycleDetailsById, getActivitiesRecordsSummary } from "@/lib/data";
+import { getCycleDetailsById, getActivitiesRecordsSummary, getPlots, getRecordCategoryTypes, getActivityTypes } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { CycleDetailClient } from "@/components/features/cycles/CycleDetailClient";
 import { CycleDetailHeader } from "@/components/features/cycles/CycleDetailHeader";
@@ -18,9 +18,15 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
 
     const summary = getActivitiesRecordsSummary(cycle.activities);
 
+    const [plots, recordCategoryTypes, activityTypes] = await Promise.all([
+        getPlots(true), // 传入 true 来获取所有地块
+        getRecordCategoryTypes(), // 获取财务记录类型
+        getActivityTypes() // Fetch activity types
+    ]);
+
     return (
         <div className="h-full flex flex-col bg-slate-50 pb-16">
-            <CycleDetailHeader 
+            <CycleDetailHeader
                 plotName={cycle.plot.name}
                 crop={cycle.plot.crop}
                 startDate={cycle.start}
@@ -40,13 +46,13 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
                                 </span>
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2.5">
-                                <div 
+                                <div
                                     className={`h-2.5 rounded-full ${(summary.cycleExpense > (cycle.budget || 0)) ? 'bg-red-500' : 'bg-emerald-500'}`}
                                     style={{ width: `${Math.min(100, (Math.abs(summary.cycleExpense) / (cycle.budget || 1)) * 100)}%` }}
                                 ></div>
                             </div>
                             <p className={`text-xs mt-1.5 text-right ${(summary.cycleExpense > (cycle.budget || 0)) ? 'text-red-500' : 'text-slate-500'}`}>
-                                { (cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
+                                {(cycle.budget || 0) - Math.abs(summary.cycleExpense) >= 0 ? `剩余 ¥${((cycle.budget || 0) - Math.abs(summary.cycleExpense)).toLocaleString()}` : `已超支 ¥${(Math.abs(summary.cycleExpense) - (cycle.budget || 0)).toLocaleString()}`}
                             </p>
                         </div>
                     ) : (
@@ -59,7 +65,12 @@ export default async function CycleDetailPage({ params }: { params: Promise<{ ac
                     )}
                 </div>
 
-                <CycleDetailClient cycle={cycle} />
+                <CycleDetailClient
+                    cycle={cycle}
+                    plots={plots}
+                    recordCategoryTypes={recordCategoryTypes}
+                    activityTypes={activityTypes}
+                />
             </main>
         </div>
     );

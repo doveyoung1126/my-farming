@@ -24,16 +24,6 @@ const ActivitiesList = ({
     activities: ActivityWithFinancials[];
     isEditAble?: boolean
 }) => {
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-
-    // Helper to create new URL with updated search params
-    const createUrl = (paramName: string, paramValue: string) => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set(paramName, paramValue);
-        return `${pathname}?${params.toString()}`;
-    };
-
     return (
         <div className="space-y-3 mb-20">
             {activities.map((activity) => {
@@ -69,7 +59,7 @@ const ActivitiesList = ({
                                         </span>
                                         {/* Edit Button */}
                                         {isEditAble && (<Link
-                                            href={createUrl('editActivity', activity.id.toString())}
+                                            href={{ query: { editActivity: activity.id.toString() } }}
                                             scroll={false} // Prevent scrolling to top on URL change
                                             className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
                                             aria-label="编辑活动"
