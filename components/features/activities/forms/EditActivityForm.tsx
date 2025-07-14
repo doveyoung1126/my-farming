@@ -28,13 +28,14 @@ export function EditActivityForm({
     recordCategoryTypes,
     initialActivity,
 }: EditActivityFormProps) {
-    
+
     // --- 内部状态管理 ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activityTypeId, setActivityTypeId] = useState('');
     const [date, setDate] = useState(initialActivity.date.toISOString().split('T')[0]);
-    const [plotId, setPlotId] = useState(initialActivity.plotId.toString());
+    //const [plotId, setPlotId] = useState(initialActivity.plotId.toString());
+    const plotId = initialActivity.plotId.toString()
     const [crop, setCrop] = useState(initialActivity.crop || '');
     const [budget, setBudget] = useState(initialActivity.budget?.toString() || '');
     const [records, setRecords] = useState<FinancialRecordForm[]>([]);
@@ -110,7 +111,7 @@ export function EditActivityForm({
                 const errorData = await response.json();
                 throw new Error(errorData.message || '更新农事活动失败');
             }
-            
+
             router.refresh();
             clearUrlAndClose(); // 成功后自己清理URL
 
@@ -173,18 +174,13 @@ export function EditActivityForm({
 
             <div>
                 <label htmlFor="plot" className="block text-sm font-medium text-gray-700">地块 <span className="text-red-500">*</span></label>
-                <select
+                <input
                     id="plot"
-                    value={plotId}
-                    onChange={(e) => setPlotId(e.target.value)}
+                    type="text"
+                    value={initialActivity.plotName}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
-                    required
-                >
-                    <option value="">请选择地块</option>
-                    {plots.map(plot => (
-                        <option key={plot.id} value={plot.id.toString()}>{plot.name}</option>
-                    ))}
-                </select>
+                    readOnly
+                />
             </div>
 
             <div>
