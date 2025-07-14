@@ -2,15 +2,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'; // Import useSearchParams
+import { useRouter } from 'next/navigation';
 import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType, ActivityType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
 import { Calendar, ChevronDown } from 'lucide-react';
-import { ConfirmationModal } from '../../ui/ConfirmationModal';
 import { FormModal } from '../../ui/FormModal';
-import { EditFinancialRecordForm, EditFinancialRecordPayload } from '../records/forms/EditFinancialRecordForm';
-import { EditActivityForm } from '../activities/forms/EditActivityForm'; // Import EditActivityForm
+import { EditFinancialRecordForm } from '../records/forms/EditFinancialRecordForm';
+import { EditActivityForm } from '../activities/forms/EditActivityForm';
+import { UrlActionHandler } from '../../ui/UrlActionHandler'; // 1. 导入新组件
 
 // --- 类型定义 ---
 type View = 'financial' | 'activity';
@@ -26,7 +26,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
     records: FinancialWithActivity[];
     plots: PrismaPlots[];
     recordCategoryTypes: RecordCategoryType[];
-    activityTypes: ActivityType[]; // Add activityTypes prop
+    activityTypes: ActivityType[];
 }) {
     // --- State管理 ---
     const [activeView, setActiveView] = useState<View>('financial');
@@ -41,60 +41,17 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
     const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams(); // Initialize useSearchParams
-    const editActivityId = searchParams.get('editActivity'); // Get activity ID from URL
-    const editRecordId = searchParams.get('editRecord'); // Get record ID from URL
 
-    // 根据ID从列表中查找要编辑的对象
-    const activityToEdit = useMemo(() => {
-        if (!editActivityId) return null;
-        return activities.find(a => a.id === parseInt(editActivityId));
-    }, [editActivityId, activities]);
+    // 2. 移除所有手动处理 URL 参数的逻辑
+    // const pathname = usePathname();
+    // const searchParams = useSearchParams();
+    // const editActivityId = searchParams.get('editActivity');
+    // const editRecordId = searchParams.get('editRecord');
+    // const activityToEdit = useMemo(...);
+    // const recordToEdit = useMemo(...);
+    // const handleCloseModal = () => { ... };
 
-    const recordToEdit = useMemo(() => {
-        if (!editRecordId) return null;
-        return records.find(r => r.id === parseInt(editRecordId));
-    }, [editRecordId, records]);
-
-    const handleCloseModal = () => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete('editActivity');
-        params.delete('editRecord');
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    };
-
-    // 添加处理提交的函数
-    const handleConfirmEditActivity = async (data: any) => {
-        if (!activityToEdit) return;
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/activities/${activityToEdit.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新农事活动失败');
-            }
-            handleCloseModal(); // 关闭模态框
-            router.refresh();   // 刷新页面数据
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // --- Modal States for Financial Records (unchanged) ---
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [recordToDelete, setRecordToDelete] = useState<FinancialWithActivity | null>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    // const [recordToEdit, setRecordToEdit] = useState<FinancialWithActivity | null>(null);
-
-    // --- 数据过滤逻辑 ---
+    // --- 数据过滤逻辑 (这部分完全不受影响) ---
     const dateRange = useMemo(() => {
         const end = new Date();
         const start = new Date();
@@ -125,19 +82,13 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
         });
     }, [activities, dateRange, activityFilter]);
 
-    // --- 动态UI计算 ---
+    // --- 动态UI计算 (不受影响) ---
     const summary = useMemo(() => {
         return filteredRecords.reduce((acc, record) => {
             if (record.recordCategory === 'income') acc.income += record.amount; else acc.expense += record.amount;
             return acc;
         }, { income: 0, expense: 0 });
     }, [filteredRecords]);
-
-    // --- Event Handlers for Deletion ---
-
-
-    // --- Event Handlers for Editing ---
-
 
     const getDateFilterText = () => {
         switch (dateFilter) {
@@ -155,7 +106,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
     return (
         <>
             <div>
-                {/* ... 粘性头部 ... */}
+                {/* ... 粘性头部 (无变化) ... */}
                 <div className="sticky top-0 bg-slate-50 z-20 pt-4 border-b border-slate-200 shadow-sm">
                     <div className="bg-white rounded-t-lg px-4 pt-2">
                         {/* ... 视图切换器 ... */}
@@ -228,33 +179,44 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                     {activeView === 'financial' ? <FinancialReportView records={filteredRecords} /> : <ActivityLogView activities={filteredActivities} />}
                 </div>
             </div>
-            {activityToEdit && (
-                <FormModal
-                    isOpen={true}
-                    onClose={handleCloseModal}
-                    title="编辑农事活动"
-                >
-                    <EditActivityForm
-                        initialActivity={activityToEdit} // 传递完整的对象
-                        activityTypes={activityTypes}
-                        plots={plots}
-                        recordCategoryTypes={recordCategoryTypes}
-                    />
-                </FormModal>
-            )}
 
-            {recordToEdit && (
-                <FormModal
-                    isOpen={true}
-                    onClose={handleCloseModal}
-                    title="编辑财务记录"
-                >
-                    <EditFinancialRecordForm
-                        record={recordToEdit}
-                        recordCategoryTypes={recordCategoryTypes}
-                    />
-                </FormModal>
-            )}
+            {/* 3. 添加 UrlActionHandler 并配置 actions */}
+            <UrlActionHandler
+                actions={[
+                    {
+                        param: 'editActivity',
+                        render: (id, onClose) => {
+                            const activityToEdit = activities.find(a => a.id === parseInt(id));
+                            if (!activityToEdit) return null;
+                            return (
+                                <FormModal isOpen={true} onClose={onClose} title="编辑农事活动">
+                                    <EditActivityForm
+                                        initialActivity={activityToEdit}
+                                        activityTypes={activityTypes}
+                                        plots={plots}
+                                        recordCategoryTypes={recordCategoryTypes}
+                                    />
+                                </FormModal>
+                            );
+                        },
+                    },
+                    {
+                        param: 'editRecord',
+                        render: (id, onClose) => {
+                            const recordToEdit = records.find(r => r.id === parseInt(id));
+                            if (!recordToEdit) return null;
+                            return (
+                                <FormModal isOpen={true} onClose={onClose} title="编辑财务记录">
+                                    <EditFinancialRecordForm
+                                        record={recordToEdit}
+                                        recordCategoryTypes={recordCategoryTypes}
+                                    />
+                                </FormModal>
+                            );
+                        },
+                    },
+                ]}
+            />
         </>
     );
 }

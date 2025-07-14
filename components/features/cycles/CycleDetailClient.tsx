@@ -1,15 +1,15 @@
 // components/cycles/CycleDetailClient.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ActivityCycle, ActivityType, FinancialWithActivity, PrismaPlots } from "@/lib/types";
 import ActivitiesList from '@/components/features/reports/ActivitiesList';
 import { RecordItem } from '@/components/features/reports/RecordItem';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { FormModal } from '@/components/ui/FormModal';
 import { EditFinancialRecordForm } from '../records/forms/EditFinancialRecordForm';
 import { EditActivityForm } from '../activities/forms/EditActivityForm';
 import { RecordCategoryType } from '@prisma/client';
+import { UrlActionHandler } from '@/components/ui/UrlActionHandler';
 
 interface CycleDetailClientProps {
     cycle: ActivityCycle
@@ -35,28 +35,7 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
             crop: activity.crop,
         }));
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 按日期降序排序
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams(); // Initialize useSearchParams
-    const editActivityId = searchParams.get('editActivity'); // Get activity ID from URL
-    const editRecordId = searchParams.get('editRecord'); // Get record ID from URL
 
-    const activityToEdit = useMemo(() => {
-        if (!editActivityId) return null;
-        return activities.find(a => a.id === parseInt(editActivityId));
-    }, [editActivityId, activities]);
-
-    const recordToEdit = useMemo(() => {
-        if (!editRecordId) return null;
-        return records.find(r => r.id === parseInt(editRecordId));
-    }, [editRecordId, records]);
-
-    const handleCloseModal = () => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete('editActivity');
-        params.delete('editRecord');
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    };
 
     return (
         <div>
@@ -76,34 +55,50 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                 }
             </div>
 
-            {/* Modal 展示 */}
-            {activityToEdit && (
-                <FormModal
-                    isOpen={true}
-                    onClose={handleCloseModal}
-                    title="编辑农事活动"
-                >
-                    <EditActivityForm
-                        initialActivity={activityToEdit} // 传递完整的对象
-                        activityTypes={activityTypes}
-                        plots={plots}
-                        recordCategoryTypes={recordCategoryTypes}
-                    />
-                </FormModal>
-            )}
-
-            {recordToEdit && (
-                <FormModal
-                    isOpen={true}
-                    onClose={handleCloseModal}
-                    title="编辑财务记录"
-                >
-                    <EditFinancialRecordForm
-                        record={recordToEdit}
-                        recordCategoryTypes={recordCategoryTypes}
-                    />
-                </FormModal>
-            )}
+            {/* URL 驱动执行编辑 */}
+            <UrlActionHandler
+                actions={[
+                    {
+                        param: "editActivity",
+                        render: (id, onclose) => {
+                            const activityToEdit = activities.find(a => a.id === parseInt(id))
+                            if (!activityToEdit) return null
+                            return (
+                                <FormModal
+                                    isOpen={true}
+                                    onClose={onclose}
+                                    title="编辑农事活动"
+                                >
+                                    <EditActivityForm
+                                        initialActivity={activityToEdit} // 传递完整的对象
+                                        activityTypes={activityTypes}
+                                        plots={plots}
+                                        recordCategoryTypes={recordCategoryTypes}
+                                    />
+                                </FormModal>
+                            )
+                        }
+                    }, {
+                        param: "editRecord",
+                        render: (id, onclose) => {
+                            const recordToEdit = records.find(r => r.id === parseInt(id))
+                            if (!recordToEdit) return null
+                            return (
+                                <FormModal
+                                    isOpen={true}
+                                    onClose={onclose}
+                                    title="编辑财务记录"
+                                >
+                                    <EditFinancialRecordForm
+                                        record={recordToEdit}
+                                        recordCategoryTypes={recordCategoryTypes}
+                                    />
+                                </FormModal>
+                            )
+                        }
+                    }
+                ]}
+            />
         </div>
     );
 }
