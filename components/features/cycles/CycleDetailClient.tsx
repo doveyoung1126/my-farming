@@ -80,18 +80,19 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                         }
                     }, {
                         param: "editRecord",
-                        render: (id, onclose) => {
+                        render: (id, onClose) => {
                             const recordToEdit = records.find(r => r.id === parseInt(id))
                             if (!recordToEdit) return null
                             return (
                                 <FormModal
                                     isOpen={true}
-                                    onClose={onclose}
+                                    onClose={onClose}
                                     title="编辑财务记录"
                                 >
                                     <EditFinancialRecordForm
                                         record={recordToEdit}
                                         recordCategoryTypes={recordCategoryTypes}
+                                        onClose={onClose}
                                     />
                                 </FormModal>
                             )

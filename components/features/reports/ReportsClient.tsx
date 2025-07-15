@@ -210,6 +210,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                     <EditFinancialRecordForm
                                         record={recordToEdit}
                                         recordCategoryTypes={recordCategoryTypes}
+                                        onClose={onClose}
                                     />
                                 </FormModal>
                             );

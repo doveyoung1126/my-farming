@@ -5,8 +5,15 @@ import { revalidatePath } from 'next/cache';
 // 定义我们期望从表单接收的数据的类型
 interface PlotUpdatePayload {
   name: string;
-  description?: string;
-  size: number;
+  crop?: string;
+  area: number;
+}
+
+interface RecordUpdatePayload {
+  amount: number,
+  recordTypeId: number,
+  date: Date,
+  description: string
 }
 
 /**
@@ -15,7 +22,7 @@ interface PlotUpdatePayload {
  */
 export async function updatePlotAction(formData: FormData) {
   const plotId = formData.get('plotId');
-  
+
   // 1. 数据校验
   if (!plotId) {
     return { error: '地块 ID 缺失，无法更新。' };
@@ -24,8 +31,8 @@ export async function updatePlotAction(formData: FormData) {
   // 2. 从 formData 中提取并构建 payload
   const payload: PlotUpdatePayload = {
     name: formData.get('name') as string,
-    description: formData.get('description') as string,
-    size: parseFloat(formData.get('size') as string),
+    crop: formData.get('crop') as string,
+    area: parseFloat(formData.get('area') as string),
   };
 
   try {
@@ -64,10 +71,14 @@ export async function updateActivityAction(formData: FormData) {
     return { error: '农事活动 ID 缺失，无法更新。' };
   }
 
+  const dateString = formData.get('date') as string;
+  const timeString = formData.get('time') as string || '00:00:00.000Z';
+  const date = new Date(`${dateString}T${timeString}`);
+
   const payload = {
     activityTypeId: parseInt(formData.get('activityTypeId') as string),
     plotId: parseInt(formData.get('plotId') as string),
-    date: new Date(formData.get('date') as string),
+    date: date,
     notes: formData.get('notes') as string,
     // 处理可选的财务记录
     ...(formData.get('includeFinancialRecord') === 'on' && {
@@ -109,11 +120,17 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: '财务记录 ID 缺失，无法更新。' };
   }
 
-  const payload = {
-    date: new Date(formData.get('date') as string),
+  const dateString = formData.get('date') as string;
+  const timeString = formData.get('time') as string || '00:00:00.000Z'; // 从隐藏字段获取时间，提供默认值以防万一
+
+  // 将新的日期部分和旧的时间部分结合，以保留时间细节
+  const date = new Date(`${dateString}T${timeString}`);
+
+  const payload: RecordUpdatePayload = {
+    date: date,
     amount: parseFloat(formData.get('amount') as string),
-    recordCategoryId: parseInt(formData.get('recordCategoryId') as string),
-    notes: formData.get('notes') as string,
+    recordTypeId: parseInt(formData.get('recordCategoryId') as string),
+    description: formData.get('notes') as string,
   };
 
   try {
