@@ -2,24 +2,26 @@
 'use client';
 
 import { ArrowLeft, Edit, MoreVertical, Archive } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
-export function PlotDetailHeader({
-    plotName,
-    plotArea,
-    currentCrop,
-    isArchived,
-    onEdit,
-    onArchive,
-}: {
-    plotName: string;
-    plotArea: number;
-    currentCrop: string | null;
+interface Plot {
     isArchived: boolean;
-    onEdit: () => void;
-    onArchive: () => void;
-}) {
+    id: number;
+    name: string;
+    area: number;
+    crop: string | null;
+}
+interface PlotDetailHeaderProps {
+    plot: Plot,
+    onArchive: () => void
+}
+
+export function PlotDetailHeader({
+    plot,
+    onArchive
+}: PlotDetailHeaderProps) {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -44,15 +46,15 @@ export function PlotDetailHeader({
                 </button>
                 <div>
                     <div className="flex items-center gap-2">
-                        <h1 className="text-xl font-bold text-gray-800">{plotName}</h1>
-                        {isArchived && (
+                        <h1 className="text-xl font-bold text-gray-800">{plot.name}</h1>
+                        {plot.isArchived && (
                             <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-xs font-semibold rounded-full">
                                 已归档
                             </span>
                         )}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                        面积: {plotArea} 亩 {currentCrop && `· 当前作物: ${currentCrop}`}
+                        面积: {plot.area} 亩 {plot.crop && `· 当前作物: ${plot.crop}`}
                     </p>
                 </div>
             </div>
@@ -62,20 +64,29 @@ export function PlotDetailHeader({
                 </button>
                 {isMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 py-1">
-                        <button
-                            onClick={() => { onEdit(); setIsMenuOpen(false); }}
+                        {plot.isArchived ? <button
                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            disabled={isArchived} // 归档后不可编辑
+                            disabled // 归档后不可编辑
                         >
                             <Edit className="w-4 h-4 mr-3" />
                             编辑
-                        </button>
+                        </button> :
+                            <Link
+                                href={{ query: { editPlot: plot.id.toString() } }}
+                                scroll={false}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                aria-label="编辑地块"
+                            >
+                                <Edit className="w-4 h-4 mr-3" />
+                                编辑
+                            </Link>}
+
                         <button
                             onClick={() => { onArchive(); setIsMenuOpen(false); }}
                             className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                         >
                             <Archive className="w-4 h-4 mr-3" />
-                            {isArchived ? '恢复' : '归档'}
+                            {plot.isArchived ? '恢复' : '归档'}
                         </button>
                     </div>
                 )}

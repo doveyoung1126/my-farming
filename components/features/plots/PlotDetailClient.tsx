@@ -5,57 +5,30 @@ import { ActivityCycle, PrismaPlots } from "@/lib/types";
 import { OngoingCycleCard } from "@/components/features/dashboard/OngoingCycleCard";
 import { CompletedCycleCard } from "@/components/features/dashboard/CompletedCycleCard";
 import { useState } from "react";
-import { EditPlotForm, EditPlotPayload } from "@/components/features/plots/forms/EditPlotForm";
+import { EditPlotForm } from "@/components/features/plots/forms/EditPlotForm";
 import { useRouter } from "next/navigation";
 import { PlotDetailHeader } from "./PlotDetailHeader";
 import { getActivitiesRecordsSummary } from "@/lib/data";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { FormModal } from "@/components/ui/FormModal";
+import { UrlActionHandler } from "@/components/ui/UrlActionHandler";
 
 export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: ActivityCycle[] }) {
     // --- State for Modals ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
     const [modalContent, setModalContent] = useState({ title: '', body: '', confirmText: '' });
-    
+
     // --- Shared State for Async Operations ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     const router = useRouter();
 
     const ongoingCycles = cycles.filter(cycle => cycle.status === 'ongoing');
     const completedCycles = cycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => b.end!.getTime() - a.end!.getTime());
 
     const summary = getActivitiesRecordsSummary(cycles.flatMap(c => c.activities));
-
-    // --- Edit Handlers ---
-    const handleOpenEditModal = () => {
-        setError(null);
-        setIsEditModalOpen(true);
-    };
-
-    const handleConfirmEdit = async (data: EditPlotPayload) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/plots/${plot.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新失败');
-            }
-            setIsEditModalOpen(false);
-            router.refresh();
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     // --- Archive Handlers ---
     const handleOpenArchiveConfirm = () => {
@@ -97,11 +70,7 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
     return (
         <>
             <PlotDetailHeader
-                plotName={plot.name}
-                plotArea={plot.area}
-                currentCrop={plot.crop}
-                isArchived={plot.isArchived}
-                onEdit={handleOpenEditModal}
+                plot={plot}
                 onArchive={handleOpenArchiveConfirm}
             />
 
@@ -145,8 +114,34 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
                 </div>
             </main>
 
+            {/* 使用 URL 驱动编辑和归档 */}
+            <UrlActionHandler
+                actions={[
+                    {
+                        param: "editPlot",
+                        render: (id, onClose) => {
+                            const editPlot = id === plot.id.toString() ? plot : null
+
+                            if (!editPlot) return null
+                            return (
+                                <FormModal
+                                    isOpen={true}
+                                    onClose={onClose}
+                                    title="编辑地块"
+                                >
+                                    <EditPlotForm
+                                        plot={editPlot}
+                                        onClose={onClose}
+                                    />
+                                </FormModal>
+                            )
+                        }
+                    }
+                ]}
+            />
+
             {/* Edit Plot Modal using the new generic FormModal */}
-            <FormModal
+            {/*  <FormModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 title="编辑地块"
@@ -158,7 +153,7 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
                     isLoading={isLoading}
                     error={error}
                 />
-            </FormModal>
+            </FormModal> */}
 
             {/* Archive/Restore Confirmation Modal */}
             <ConfirmationModal
