@@ -21,6 +21,7 @@ interface FinancialRecordForm {
     recordTypeId: string;
     description: string;
     date: string;
+    originalTime?: string; // 添加可选的原始时间字段
 }
 
 export function EditActivityForm({
@@ -31,11 +32,22 @@ export function EditActivityForm({
     onClose,
 }: EditActivityFormProps) {
 
+    // --- 日期格式化辅助函数 ---
+    function formatDateForInput(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     // --- 内部状态管理 (保留) ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activityTypeId, setActivityTypeId] = useState('');
-    const [date, setDate] = useState(initialActivity.date.toISOString().split('T')[0]);
+    // 使用辅助函数安全地初始化日期状态
+    const [date, setDate] = useState(formatDateForInput(new Date(initialActivity.date)));
+    // 存储原始的时间部分，以便在提交时保留
+    const originalTime = new Date(initialActivity.date).toTimeString().split(' ')[0];
     const plotId = initialActivity.plotId.toString()
     const [crop, setCrop] = useState(initialActivity.crop || '');
     const [budget, setBudget] = useState(initialActivity.budget?.toString() || '');
@@ -57,7 +69,8 @@ export function EditActivityForm({
                     amount: rec.amount.toString(),
                     recordTypeId: recordType ? recordType.id.toString() : '',
                     description: rec.description || '',
-                    date: rec.date.toISOString().split('T')[0],
+                    date: formatDateForInput(new Date(rec.date)),
+                    originalTime: new Date(rec.date).toTimeString().split(' ')[0], // 保存原始时间
                 };
             });
             setRecords(mappedRecords);
@@ -77,17 +90,21 @@ export function EditActivityForm({
         const payload = {
             id: initialActivity.id,
             activityTypeId: parseInt(activityTypeId),
-            date: new Date(date),
+            date: new Date(`${date}T${originalTime}`).toISOString(), // 重新组合日期和原始时间
             plotId: parseInt(plotId),
             crop: crop || null,
             budget: showBudgetField && budget ? parseFloat(budget) : null,
-            records: showFinancials ? records.map(rec => ({
-                id: rec.id,
-                amount: parseFloat(rec.amount),
-                recordTypeId: parseInt(rec.recordTypeId),
-                description: rec.description || null,
-                date: new Date(rec.date),
-            })) : [],
+            records: showFinancials ? records.map(rec => {
+                // 从记录自身获取原始时间，如果不存在（新记录），则使用主活动时间
+                const recordTime = rec.originalTime || originalTime;
+                return {
+                    id: rec.id,
+                    amount: parseFloat(rec.amount),
+                    recordTypeId: parseInt(rec.recordTypeId),
+                    description: rec.description || null,
+                    date: new Date(`${rec.date}T${recordTime}`).toISOString(), // 使用正确的原始时间
+                };
+            }) : [],
         };
 
         const result = await updateActivityWithRecordsAction(payload);

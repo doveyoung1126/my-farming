@@ -108,17 +108,17 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: '财务记录 ID 缺失，无法更新。' };
   }
 
-  const dateString = formData.get('date') as string;
-  const timeString = formData.get('time') as string || '00:00:00.000Z'; // 从隐藏字段获取时间，提供默认值以防万一
+  // const dateString = formData.get('date') as string;
+  // const timeString = formData.get('time') as string || '00:00:00.000Z'; // 从隐藏字段获取时间，提供默认值以防万一
 
-  // 将新的日期部分和旧的时间部分结合，以保留时间细节
-  const date = new Date(`${dateString}T${timeString}`);
+  // const date = new Date(`${dateString}T${timeString}`);
+  const date = new Date(formData.get('isoDate') as string)
   console.log('serverDate', date)
   const payload: RecordUpdatePayload = {
     date: date,
     amount: parseFloat(formData.get('amount') as string),
     recordTypeId: parseInt(formData.get('recordCategoryId') as string),
-    description: formData.get('notes') as string,
+    description: formData.get('description') as string,
   };
 
   try {

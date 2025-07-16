@@ -49,15 +49,39 @@ export function EditFinancialRecordForm({
     };
 
     const initialRecordType = recordCategoryTypes.find(t => t.name === record.recordType);
-    const originalTime = new Date(record.date).toISOString().split('T')[1]; // 提取时间部分
-    console.log('originalTime', originalTime)
+
+    // --- 正确的、健-壮的日期处理 ---
+
+    // 1. 创建一个函数，用于将 Date 对象格式化为 "YYYY-MM-DD"
+    function formatDateForInput(date: Date): string {
+        const year = date.getFullYear();
+        // getMonth() 返回 0-11，所以要 +1。padStart 确保月份是两位数，例如 "05"
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        // padStart 确保日期是两位数，例如 "09"
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 2. 将从服务器来的 UTC 时间转换为本地 Date 对象
+    const localDate = new Date(record.date);
+
+    // 3. 使用我们的新函数来初始化 state，确保格式正确
+    const [localDatePart, setLocalDatePart] = useState(formatDateForInput(localDate));
+
+    // 4. toTimeString() 很好，但为了安全，我们也可以手动构建时间部分
+    const localTimePart = localDate.toTimeString().split(' ')[0]; // "HH:mm:ss"
+
+    // 5. 组合并创建最终的 ISO 字符串
+    // 注意：直接用 localDatePart 和 localTimePart 组合，因为它们都来自同一个 localDate 对象
+    const isoDate = new Date(`${localDatePart}T${localTimePart}`).toISOString();
 
     return (
         <form ref={formRef} action={formAction} className="space-y-4 p-4">
             {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
 
             <input type="hidden" name="recordId" value={record.id} />
-            <input type="hidden" name="time" value={originalTime} /> {/* 添加隐藏的时间字段 */}
+            <input type="hidden" name="isoDate" value={isoDate} />
+
             <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
                 <input
@@ -89,23 +113,23 @@ export function EditFinancialRecordForm({
             </div>
 
             <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700">日期 <span className="text-red-500">*</span></label>
+                <label htmlFor="localDatePart" className="block text-sm font-medium text-gray-700">日期 <span className="text-red-500">*</span></label>
                 <input
                     type="date"
-                    id="date"
-                    name="date"
-                    defaultValue={new Date(record.date).toISOString().split('T')[0]}
+                    id='localDatePart'
+                    value={localDatePart}
+                    onChange={(e) => setLocalDatePart(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     required
                 />
             </div>
 
             <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">描述 (可选)</label>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">描述 (可选)</label>
                 <input
                     type="text"
-                    id="notes"
-                    name="notes"
+                    id="description"
+                    name="description"
                     defaultValue={record.description || ''}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     placeholder="例如：购买种子"
