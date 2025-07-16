@@ -20,15 +20,25 @@ interface FinancialRecordForm {
     recordTypeId: string;
     description: string;
     date: string;
+    originalTime?: string; // 添加可选的原始时间字段
 }
 
 export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onSubmit, onCancel, isLoading, error }: AddActivityFormProps) {
+    // --- 日期格式化辅助函数 ---
+    function formatDateForInput(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     const [activityTypeId, setActivityTypeId] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(formatDateForInput(new Date()));
+    const originalTime = new Date().toTimeString().split(' ')[0]; // 获取当前时间作为默认时间
     const [plotId, setPlotId] = useState('');
     const [crop, setCrop] = useState('');
     const [budget, setBudget] = useState('');
-    const [records, setRecords] = useState<FinancialRecordForm[]>([{ amount: '', recordTypeId: '', description: '', date: new Date().toISOString().split('T')[0] }]);
+    const [records, setRecords] = useState<FinancialRecordForm[]>([{ amount: '', recordTypeId: '', description: '', date: formatDateForInput(new Date()), originalTime: originalTime }]);
     const [showFinancials, setShowFinancials] = useState(false);
 
     // 根据选择的活动类型，判断是否显示预算字段
@@ -48,7 +58,7 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
     }, [plotId, plots]);
 
     const handleAddRecord = () => {
-        setRecords([...records, { amount: '', recordTypeId: '', description: '', date: date }]);
+        setRecords([...records, { amount: '', recordTypeId: '', description: '', date: date, originalTime: originalTime }]);
     };
 
     const handleRemoveRecord = (index: number) => {
@@ -66,15 +76,19 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
 
         const payload = {
             activityTypeId: activityTypeId,
-            date: date,
+            date: new Date(`${date}T${originalTime}`).toISOString(), // 组合日期和时间
             plotId: plotId,
             crop: crop || null,
             budget: showBudgetField && budget ? parseFloat(budget) : null,
-            records: showFinancials ? records.map(rec => ({
-                ...rec,
-                amount: parseFloat(rec.amount),
-                recordTypeId: parseInt(rec.recordTypeId),
-            })) : [],
+            records: showFinancials ? records.map(rec => {
+                const recordTime = rec.originalTime || originalTime; // 使用记录自己的时间或主活动时间
+                return {
+                    ...rec,
+                    amount: parseFloat(rec.amount),
+                    recordTypeId: parseInt(rec.recordTypeId),
+                    date: new Date(`${rec.date}T${recordTime}`).toISOString(), // 组合日期和时间
+                };
+            }) : [],
         };
 
         onSubmit(payload);
