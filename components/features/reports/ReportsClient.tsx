@@ -11,6 +11,7 @@ import { FormModal } from '../../ui/FormModal';
 import { EditFinancialRecordForm } from '../records/forms/EditFinancialRecordForm';
 import { EditActivityForm } from '../activities/forms/EditActivityForm';
 import { UrlActionHandler } from '../../ui/UrlActionHandler'; // 1. 导入新组件
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 // --- 类型定义 ---
 type View = 'financial' | 'activity';
@@ -214,6 +215,53 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                         onClose={onClose}
                                     />
                                 </FormModal>
+                            );
+                        },
+                    },
+                    {
+                        param: 'deleteRecord',
+                        render: (id, onClose) => {
+                            const recordToDelete = records.find(r => r.id === parseInt(id));
+                            if (!recordToDelete) return null;
+
+                            const handleDelete = async () => {
+                                setIsLoading(true);
+                                setError(null);
+                                try {
+                                    const response = await fetch(`/api/records/${id}`, {
+                                        method: 'DELETE',
+                                    });
+                                    if (!response.ok) {
+                                        const errorData = await response.json();
+                                        throw new Error(errorData.message || '删除失败');
+                                    }
+                                    router.refresh(); // 刷新数据
+                                    onClose(); // 关闭模态框
+                                } catch (err: any) {
+                                    setError(err.message);
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            };
+
+                            return (
+                                <ConfirmationModal
+                                    isOpen={true}
+                                    onClose={onClose}
+                                    onConfirm={handleDelete}
+                                    title="确认删除"
+                                    isLoading={isLoading}
+                                    error={error}
+                                >
+                                    <p>您确定要删除这条财务记录吗？</p>
+                                    <div className="mt-2 p-2 bg-gray-100 rounded-md text-sm">
+                                        <p><strong>类型:</strong> {recordToDelete.recordType}</p>
+                                        <p><strong>金额:</strong> ¥{recordToDelete.amount}</p>
+                                        <p><strong>日期:</strong> {new Date(recordToDelete.date).toLocaleDateString()}</p>
+                                        {recordToDelete.description && <p><strong>描述:</strong> {recordToDelete.description}</p>}
+                                    </div>
+                                    <p className="mt-2 text-xs text-red-600">此操作无法撤销。</p>
+                                </ConfirmationModal>
                             );
                         },
                     },
