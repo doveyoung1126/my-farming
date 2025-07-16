@@ -141,3 +141,168 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: error.message };
   }
 }
+
+/**
+ * 创建财务记录的 Server Action
+ */
+export async function createFinancialRecordAction(previousState: any, formData: FormData) {
+  const formValues = {
+    amount: formData.get('amount') as string,
+    recordTypeId: formData.get('recordTypeId') as string,
+    date: formData.get('date') as string, // This is 'YYYY-MM-DD'
+    description: formData.get('description') as string,
+  };
+
+  // Replicating original logic: combine selected date with current time
+  const time = new Date().toTimeString().split(' ')[0];
+  const isoDate = new Date(`${formValues.date}T${time}`);
+
+  const payload = {
+    amount: parseFloat(formValues.amount),
+    recordTypeId: parseInt(formValues.recordTypeId),
+    date: isoDate,
+    description: formValues.description || null,
+  };
+
+  // Basic validation
+  if (isNaN(payload.amount) || !payload.recordTypeId || !payload.date) {
+    return { success: false, error: '请填写所有必填字段并确保格式正确。' };
+  }
+
+  try {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${apiBaseUrl}/api/records`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '创建财务记录失败。');
+    }
+
+    revalidatePath('/reports');
+
+    return { success: true, error: null };
+
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 创建农事活动的 Server Action
+ */
+export async function createActivityAction(previousState: any, formData: FormData) {
+  // Extract main activity data
+  const activityTypeId = formData.get('activityTypeId') as string;
+  const plotId = formData.get('plotId') as string;
+  const date = formData.get('date') as string; // Main date for the activity
+  const crop = formData.get('crop') as string;
+  const budget = formData.get('budget') as string;
+  
+  // The original time is not sent, so we'll use the beginning of the day for the main date
+  const mainDate = new Date(date);
+
+  // --- Replicating the handleSubmit logic from the original form ---
+  const payload: any = {
+    activityTypeId: activityTypeId,
+    date: mainDate.toISOString(),
+    plotId: plotId,
+    crop: crop || null,
+    budget: budget ? parseFloat(budget) : null,
+    records: [],
+  };
+
+  // Extract financial records from formData
+  const recordsData: { [key: number]: any } = {};
+  formData.forEach((value, key) => {
+    // Match keys like records[0][amount]
+    const match = key.match(/^records\[(\d+)\]\[(\w+)\]$/);
+    if (match) {
+      const index = parseInt(match[1], 10);
+      const field = match[2];
+      if (!recordsData[index]) {
+        recordsData[index] = {};
+      }
+      recordsData[index][field] = value;
+    }
+  });
+
+  // Process the extracted records into the final payload structure
+  payload.records = Object.values(recordsData).map(rec => {
+    const recordDate = rec.date ? new Date(rec.date) : mainDate;
+    return {
+      amount: parseFloat(rec.amount),
+      recordTypeId: parseInt(rec.recordTypeId),
+      description: rec.description || null,
+      date: recordDate.toISOString(),
+    };
+  });
+
+  // Basic validation
+  if (!payload.activityTypeId || !payload.plotId || !payload.date) {
+    return { success: false, error: '请填写所有必填的农事活动字段。' };
+  }
+  
+  try {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${apiBaseUrl}/api/activities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '创建农事活动失败。');
+    }
+    
+    revalidatePath('/reports');
+    if (payload.plotId) {
+        revalidatePath(`/cycles/${payload.plotId}`);
+    }
+
+    return { success: true, error: null };
+
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 创建地块的 Server Action
+ */
+export async function createPlotAction(previousState: any, formData: FormData) {
+  const payload = {
+    name: formData.get('name') as string,
+    area: parseFloat(formData.get('area') as string),
+    crop: formData.get('crop') as string || null,
+  };
+
+  if (!payload.name || isNaN(payload.area)) {
+    return { success: false, error: '请提供地块名称和有效的面积。' };
+  }
+
+  try {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${apiBaseUrl}/api/plots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '添加地块失败');
+    }
+
+    revalidatePath('/plots');
+    
+    return { success: true, error: null };
+
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

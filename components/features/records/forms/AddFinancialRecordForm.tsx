@@ -1,19 +1,40 @@
-// components/forms/AddFinancialRecordForm.tsx
+// components/features/records/forms/AddFinancialRecordForm.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { RecordCategoryType } from '@/lib/types';
+import { createFinancialRecordAction } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 
 interface AddFinancialRecordFormProps {
     recordCategoryTypes: RecordCategoryType[];
-    onSubmit: (data: any) => void; // Use 'any' for now, will define specific payload type later if needed
+    onSuccess: () => void;
     onCancel: () => void;
-    isLoading: boolean;
-    error: string | null;
 }
 
-export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel, isLoading, error }: AddFinancialRecordFormProps) {
+const initialState = {
+  error: null,
+  success: false,
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button 
+        type="submit" 
+        className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
+        disabled={pending}
+    >
+        {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+        保存记录
+    </button>
+  );
+}
+
+export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCancel }: AddFinancialRecordFormProps) {
+    const [state, formAction] = useActionState(createFinancialRecordAction, initialState);
+
     // --- 日期格式化辅助函数 ---
     function formatDateForInput(date: Date): string {
         const year = date.getFullYear();
@@ -22,36 +43,26 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel
         return `${year}-${month}-${day}`;
     }
 
-    const [amount, setAmount] = useState('');
-    const [recordTypeId, setRecordTypeId] = useState('');
-    const [date, setDate] = useState(formatDateForInput(new Date()));
-    const originalTime = new Date().toTimeString().split(' ')[0]; // 获取当前时间作为默认时间
-    const [description, setDescription] = useState('');
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const payload = {
-            amount: parseFloat(amount),
-            recordTypeId: parseInt(recordTypeId),
-            date: new Date(`${date}T${originalTime}`).toISOString(), // 组合日期和时间
-            description: description || null,
-        };
-
-        onSubmit(payload);
-    };
+    useEffect(() => {
+        if (state.success) {
+            onSuccess();
+        }
+    }, [state.success, onSuccess]);
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-4">
-            
+        <form action={formAction} className="space-y-4 p-4">
+            {state.error && (
+                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                    <p>{state.error}</p>
+                </div>
+            )}
 
             <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
                 <input
                     type="number"
                     id="amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    name="amount"
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     placeholder="例如：-50.00 (支出) 或 100.00 (收入)"
                     step="0.01"
@@ -60,15 +71,15 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel
             </div>
 
             <div>
-                <label htmlFor="recordType" className="block text-sm font-medium text-gray-700">财务类型 <span className="text-red-500">*</span></label>
+                <label htmlFor="recordTypeId" className="block text-sm font-medium text-gray-700">财务类型 <span className="text-red-500">*</span></label>
                 <select
-                    id="recordType"
-                    value={recordTypeId}
-                    onChange={(e) => setRecordTypeId(e.target.value)}
+                    id="recordTypeId"
+                    name="recordTypeId"
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    defaultValue=""
                 >
-                    <option value="">请选择财务类型</option>
+                    <option value="" disabled>请选择财务类型</option>
                     {recordCategoryTypes.map(type => (
                         <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                     ))}
@@ -80,8 +91,8 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel
                 <input
                     type="date"
                     id="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    name="date"
+                    defaultValue={formatDateForInput(new Date())}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     required
                 />
@@ -92,8 +103,7 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel
                 <input
                     type="text"
                     id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    name="description"
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     placeholder="例如：购买办公用品"
                 />
@@ -108,14 +118,7 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSubmit, onCancel
                 >
                     取消
                 </button>
-                <button 
-                    type="submit" 
-                    className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
-                    disabled={isLoading}
-                >
-                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    保存记录
-                </button>
+                <SubmitButton />
             </div>
         </form>
     );
