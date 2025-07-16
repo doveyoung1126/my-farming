@@ -63,35 +63,19 @@ export async function updatePlotAction(formData: FormData) {
 }
 
 /**
- * 更新农事活动的 Server Action
+ * 更新农事活动及其关联的财务记录的 Server Action
+ * @param payload 包含活动和记录数据的对象, 从客户端组件传来
  */
-export async function updateActivityAction(formData: FormData) {
-  const activityId = formData.get('activityId');
-  if (!activityId) {
+export async function updateActivityWithRecordsAction(payload: any) {
+  const { id } = payload;
+
+  if (!id) {
     return { error: '农事活动 ID 缺失，无法更新。' };
   }
 
-  const dateString = formData.get('date') as string;
-  const timeString = formData.get('time') as string || '00:00:00.000Z';
-  const date = new Date(`${dateString}T${timeString}`);
-
-  const payload = {
-    activityTypeId: parseInt(formData.get('activityTypeId') as string),
-    plotId: parseInt(formData.get('plotId') as string),
-    date: date,
-    notes: formData.get('notes') as string,
-    // 处理可选的财务记录
-    ...(formData.get('includeFinancialRecord') === 'on' && {
-      financialRecord: {
-        amount: parseFloat(formData.get('amount') as string),
-        recordCategoryId: parseInt(formData.get('recordCategoryId') as string),
-      },
-    }),
-  };
-
   try {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${apiBaseUrl}/api/activities/${activityId}`, {
+    const response = await fetch(`${apiBaseUrl}/api/activities/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -103,13 +87,17 @@ export async function updateActivityAction(formData: FormData) {
     }
 
     revalidatePath('/reports');
-    revalidatePath(`/cycles/${payload.plotId}`);
+    if (payload.plotId) {
+      revalidatePath(`/cycles/${payload.plotId}`);
+    }
 
     return { success: true };
+
   } catch (error: any) {
     return { error: error.message };
   }
 }
+
 
 /**
  * 更新财务记录的 Server Action
@@ -125,7 +113,7 @@ export async function updateFinancialRecordAction(formData: FormData) {
 
   // 将新的日期部分和旧的时间部分结合，以保留时间细节
   const date = new Date(`${dateString}T${timeString}`);
-
+  console.log('serverDate', date)
   const payload: RecordUpdatePayload = {
     date: date,
     amount: parseFloat(formData.get('amount') as string),
@@ -153,4 +141,3 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: error.message };
   }
 }
-

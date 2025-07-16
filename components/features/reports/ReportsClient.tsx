@@ -195,6 +195,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                         activityTypes={activityTypes}
                                         plots={plots}
                                         recordCategoryTypes={recordCategoryTypes}
+                                        onClose={onClose}
                                     />
                                 </FormModal>
                             );

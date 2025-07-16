@@ -60,13 +60,13 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                 actions={[
                     {
                         param: "editActivity",
-                        render: (id, onclose) => {
+                        render: (id, onClose) => {
                             const activityToEdit = activities.find(a => a.id === parseInt(id))
                             if (!activityToEdit) return null
                             return (
                                 <FormModal
                                     isOpen={true}
-                                    onClose={onclose}
+                                    onClose={onClose}
                                     title="编辑农事活动"
                                 >
                                     <EditActivityForm
@@ -74,6 +74,7 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                                         activityTypes={activityTypes}
                                         plots={plots}
                                         recordCategoryTypes={recordCategoryTypes}
+                                        onClose={onClose}
                                     />
                                 </FormModal>
                             )

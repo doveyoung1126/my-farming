@@ -1,10 +1,10 @@
-// components/forms/EditActivityForm.tsx
+// components/features/activities/forms/EditActivityForm.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ActivityType, PrismaPlots, RecordCategoryType, ActivityWithFinancials } from '@/lib/types';
 import { Plus, Minus, Loader2 } from 'lucide-react';
+import { updateActivityWithRecordsAction } from '@/lib/actions'; // 1. 导入 Server Action
 
 // --- Props 接口 ---
 interface EditActivityFormProps {
@@ -12,6 +12,7 @@ interface EditActivityFormProps {
     plots: PrismaPlots[];
     recordCategoryTypes: RecordCategoryType[];
     initialActivity: ActivityWithFinancials;
+    onClose: () => void; // 2. 添加 onClose
 }
 
 interface FinancialRecordForm {
@@ -27,26 +28,21 @@ export function EditActivityForm({
     plots,
     recordCategoryTypes,
     initialActivity,
+    onClose,
 }: EditActivityFormProps) {
 
-    // --- 内部状态管理 ---
+    // --- 内部状态管理 (保留) ---
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activityTypeId, setActivityTypeId] = useState('');
     const [date, setDate] = useState(initialActivity.date.toISOString().split('T')[0]);
-    //const [plotId, setPlotId] = useState(initialActivity.plotId.toString());
     const plotId = initialActivity.plotId.toString()
     const [crop, setCrop] = useState(initialActivity.crop || '');
     const [budget, setBudget] = useState(initialActivity.budget?.toString() || '');
     const [records, setRecords] = useState<FinancialRecordForm[]>([]);
     const [showFinancials, setShowFinancials] = useState(initialActivity.records.length > 0);
 
-    // --- Hooks for URL management ---
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-
-    // --- 用传入的 initialActivity 初始化表单 --- 
+    // --- 初始化表单 (保留) ---
     useEffect(() => {
         const type = activityTypes.find(t => t.name === initialActivity.type);
         if (type) {
@@ -68,14 +64,7 @@ export function EditActivityForm({
         }
     }, [initialActivity, activityTypes, recordCategoryTypes]);
 
-    // --- URL清理函数 ---
-    const clearUrlAndClose = () => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete('editActivity');
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    };
-
-    // --- 内部提交逻辑 ---
+    // 3. 修改 handleSubmit，调用 Server Action
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -84,6 +73,7 @@ export function EditActivityForm({
         const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
         const showBudgetField = selectedActivityType?.cycleMarker === 'START';
 
+        // 构造 payload
         const payload = {
             id: initialActivity.id,
             activityTypeId: parseInt(activityTypeId),
@@ -100,29 +90,19 @@ export function EditActivityForm({
             })) : [],
         };
 
-        try {
-            const response = await fetch(`/api/activities/${initialActivity.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+        const result = await updateActivityWithRecordsAction(payload);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '更新农事活动失败');
-            }
-
-            router.refresh();
-            clearUrlAndClose(); // 成功后自己清理URL
-
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
+        if (result?.error) {
+            setError(result.error);
             setIsLoading(false);
+        } else {
+            setError(null);
+            setIsLoading(false);
+            onClose(); // 成功后调用 onClose
         }
     };
 
-    // --- 其他辅助逻辑 ---
+    // --- 其他辅助逻辑 (保留) ---
     const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
     const showBudgetField = selectedActivityType?.cycleMarker === 'START';
 
@@ -152,6 +132,7 @@ export function EditActivityForm({
     };
 
     return (
+        // 4. form 的 onSubmit 指向新的 handleSubmit
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
             {error && <div className="text-red-500 bg-red-50 p-3 rounded-md">{error}</div>}
 
@@ -306,8 +287,9 @@ export function EditActivityForm({
             <div className="flex justify-end space-x-3 pt-4">
                 <button
                     type="button"
-                    onClick={clearUrlAndClose} // 取消按钮也清理URL
+                    onClick={onClose} // 5. 取消按钮调用 onClose
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                    disabled={isLoading}
                 >
                     取消
                 </button>
