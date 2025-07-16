@@ -2,14 +2,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ActivityCycle, ActivityType, FinancialWithActivity, PrismaPlots } from "@/lib/types";
+import { ActivityCycle, ActivityType, FinancialWithActivity, PrismaPlots, RecordCategoryType } from "@/lib/types";
 import ActivitiesList from '@/components/features/reports/ActivitiesList';
 import { RecordItem } from '@/components/features/reports/RecordItem';
 import { FormModal } from '@/components/ui/FormModal';
 import { EditFinancialRecordForm } from '../records/forms/EditFinancialRecordForm';
 import { EditActivityForm } from '../activities/forms/EditActivityForm';
-import { RecordCategoryType } from '@prisma/client';
 import { UrlActionHandler } from '@/components/ui/UrlActionHandler';
+import { DeleteRecordConfirmation } from '../records/forms/DeleteRecordConfirmation';
+import { DeleteActivityConfirmation } from '../activities/forms/DeleteActivityConfirmation';
 
 interface CycleDetailClientProps {
     cycle: ActivityCycle
@@ -98,7 +99,23 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                                 </FormModal>
                             )
                         }
-                    }
+                    },
+                    {
+                        param: 'deleteRecord',
+                        render: (id, onClose) => {
+                            const recordToDelete = records.find(r => r.id === parseInt(id));
+                            if (!recordToDelete) return null;
+                            return <DeleteRecordConfirmation record={recordToDelete} onClose={onClose} />
+                        },
+                    },
+                    {
+                        param: 'deleteActivity',
+                        render: (id, onClose) => {
+                            const activityToDelete = activities.find(a => a.id === parseInt(id));
+                            if (!activityToDelete) return null;
+                            return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
+                        },
+                    },
                 ]}
             />
         </div>

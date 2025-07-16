@@ -103,3 +103,42 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         return NextResponse.json({ message: '更新农事活动失败', error: errorMessage }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const activityId = parseInt(params.id, 10);
+        if (isNaN(activityId)) {
+            return NextResponse.json({ message: '无效的农事活动ID' }, { status: 400 });
+        }
+
+        // 使用事务确保数据一致性
+        const result = await prisma.$transaction(async (prisma) => {
+            // 1. 删除所有关联的财务记录
+            await prisma.record.deleteMany({
+                where: { activityId: activityId },
+            });
+
+            // 2. 删除农事活动本身
+            const deletedActivity = await prisma.activity.delete({
+                where: { id: activityId },
+            });
+
+            return deletedActivity;
+        });
+
+        return NextResponse.json({ message: `农事活动已成功删除` }, { status: 200 });
+
+    } catch (error: any) {
+        console.error('[API_ACTIVITIES_DELETE]', error);
+
+        // 处理 Prisma 特定的错误，例如记录未找到
+        if (error.code === 'P2025') {
+            return NextResponse.json({ message: '要删除的农事活动不存在' }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: '服务器内部错误' }, { status: 500 });
+    }
+}

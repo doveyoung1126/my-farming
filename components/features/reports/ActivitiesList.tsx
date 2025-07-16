@@ -1,7 +1,7 @@
 // components/ActivitiesList.tsx
 import { ActivityWithFinancials } from '@/lib/types'
 import { calculateFinancials } from '@/lib/utils';
-import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil } from 'lucide-react';
+import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -58,14 +58,27 @@ const ActivitiesList = ({
                                             {activity.date.toLocaleDateString('zh-CN')}
                                         </span>
                                         {/* Edit Button */}
-                                        {isEditAble && (<Link
-                                            href={{ query: { editActivity: activity.id.toString() } }}
-                                            scroll={false} // Prevent scrolling to top on URL change
-                                            className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                                            aria-label="编辑活动"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </Link>)}
+                                        {isEditAble && (<div className='flex items-center'>
+                                            <Link
+                                                href={{ query: { editActivity: activity.id.toString() } }}
+                                                scroll={false} // Prevent scrolling to top on URL change
+                                                replace
+                                                className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                                                aria-label="编辑活动"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Link>
+                                            <Link
+                                                href={{ query: { deleteActivity: activity.id.toString() } }}
+                                                scroll={false}
+                                                replace
+                                                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                                                aria-label="删除活动"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Link>
+                                        </div>
+                                        )}
                                     </div>
                                 </div>
 

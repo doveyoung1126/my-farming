@@ -235,12 +235,11 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                         const errorData = await response.json();
                                         throw new Error(errorData.message || '删除失败');
                                     }
-                                    router.refresh(); // 刷新数据
-                                    onClose(); // 关闭模态框
+                                    onClose(); // 立即关闭模态框以获得更好的用户体验
+                                    router.refresh(); // 在后台刷新数据
                                 } catch (err: any) {
                                     setError(err.message);
-                                } finally {
-                                    setIsLoading(false);
+                                    setIsLoading(false); // 仅在出错时设置 loading 为 false
                                 }
                             };
 
@@ -261,6 +260,51 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                         {recordToDelete.description && <p><strong>描述:</strong> {recordToDelete.description}</p>}
                                     </div>
                                     <p className="mt-2 text-xs text-red-600">此操作无法撤销。</p>
+                                </ConfirmationModal>
+                            );
+                        },
+                    },
+                    {
+                        param: 'deleteActivity',
+                        render: (id, onClose) => {
+                            const activityToDelete = activities.find(a => a.id === parseInt(id));
+                            if (!activityToDelete) return null;
+
+                            const handleDelete = async () => {
+                                setIsLoading(true);
+                                setError(null);
+                                try {
+                                    const response = await fetch(`/api/activities/${id}`, {
+                                        method: 'DELETE',
+                                    });
+                                    if (!response.ok) {
+                                        const errorData = await response.json();
+                                        throw new Error(errorData.message || '删除失败');
+                                    }
+                                    onClose();
+                                    router.refresh();
+                                } catch (err: any) {
+                                    setError(err.message);
+                                    setIsLoading(false);
+                                }
+                            };
+
+                            return (
+                                <ConfirmationModal
+                                    isOpen={true}
+                                    onClose={onClose}
+                                    onConfirm={handleDelete}
+                                    title="确认删除"
+                                    isLoading={isLoading}
+                                    error={error}
+                                >
+                                    <p>您确定要删除这项农事活动吗？</p>
+                                    <div className="mt-2 p-2 bg-gray-100 rounded-md text-sm">
+                                        <p><strong>地块:</strong> {activityToDelete.plotName}</p>
+                                        <p><strong>类型:</strong> {activityToDelete.type}</p>
+                                        <p><strong>日期:</strong> {new Date(activityToDelete.date).toLocaleDateString()}</p>
+                                    </div>
+                                    <p className="mt-2 text-xs text-red-600">删除此活动将同时删除其所有关联的财务记录。此操作无法撤销。</p>
                                 </ConfirmationModal>
                             );
                         },

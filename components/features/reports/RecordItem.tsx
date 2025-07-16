@@ -63,6 +63,7 @@ export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
                         <Link
                             href={{ query: { editRecord: record.id } }}
                             scroll={false}
+                            replace
                             className="flex items-center text-xs text-gray-500 hover:text-blue-600 transition-colors"
                             aria-label="编辑记录"
                         >
@@ -72,6 +73,7 @@ export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
                         <Link
                             href={{ query: { deleteRecord: record.id } }}
                             scroll={false}
+                            replace
                             className="flex items-center text-xs text-gray-500 hover:text-red-600 transition-colors"
                             aria-label="删除记录"
                         >
