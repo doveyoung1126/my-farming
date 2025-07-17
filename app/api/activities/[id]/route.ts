@@ -106,10 +106,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const activityId = parseInt(params.id, 10);
+        const { id } = await params
+        const activityId = parseInt(id, 10);
         if (isNaN(activityId)) {
             return NextResponse.json({ message: '无效的农事活动ID' }, { status: 400 });
         }

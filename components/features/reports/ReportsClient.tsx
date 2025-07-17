@@ -1,7 +1,7 @@
 // components/reports/ReportsClient.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType, ActivityType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
@@ -184,60 +184,62 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
             </div>
 
             {/* 3. 添加 UrlActionHandler 并配置 actions */}
-            <UrlActionHandler
-                actions={[
-                    {
-                        param: 'editActivity',
-                        render: (id, onClose) => {
-                            const activityToEdit = activities.find(a => a.id === parseInt(id));
-                            if (!activityToEdit) return null;
-                            return (
-                                <FormModal isOpen={true} onClose={onClose} title="编辑农事活动">
-                                    <EditActivityForm
-                                        initialActivity={activityToEdit}
-                                        activityTypes={activityTypes}
-                                        plots={plots}
-                                        recordCategoryTypes={recordCategoryTypes}
-                                        onClose={onClose}
-                                    />
-                                </FormModal>
-                            );
+            <Suspense>
+                <UrlActionHandler
+                    actions={[
+                        {
+                            param: 'editActivity',
+                            render: (id, onClose) => {
+                                const activityToEdit = activities.find(a => a.id === parseInt(id));
+                                if (!activityToEdit) return null;
+                                return (
+                                    <FormModal isOpen={true} onClose={onClose} title="编辑农事活动">
+                                        <EditActivityForm
+                                            initialActivity={activityToEdit}
+                                            activityTypes={activityTypes}
+                                            plots={plots}
+                                            recordCategoryTypes={recordCategoryTypes}
+                                            onClose={onClose}
+                                        />
+                                    </FormModal>
+                                );
+                            },
                         },
-                    },
-                    {
-                        param: 'editRecord',
-                        render: (id, onClose) => {
-                            const recordToEdit = records.find(r => r.id === parseInt(id));
-                            if (!recordToEdit) return null;
-                            return (
-                                <FormModal isOpen={true} onClose={onClose} title="编辑财务记录">
-                                    <EditFinancialRecordForm
-                                        record={recordToEdit}
-                                        recordCategoryTypes={recordCategoryTypes}
-                                        onClose={onClose}
-                                    />
-                                </FormModal>
-                            );
+                        {
+                            param: 'editRecord',
+                            render: (id, onClose) => {
+                                const recordToEdit = records.find(r => r.id === parseInt(id));
+                                if (!recordToEdit) return null;
+                                return (
+                                    <FormModal isOpen={true} onClose={onClose} title="编辑财务记录">
+                                        <EditFinancialRecordForm
+                                            record={recordToEdit}
+                                            recordCategoryTypes={recordCategoryTypes}
+                                            onClose={onClose}
+                                        />
+                                    </FormModal>
+                                );
+                            },
                         },
-                    },
-                    {
-                        param: 'deleteRecord',
-                        render: (id, onClose) => {
-                            const recordToDelete = records.find(r => r.id === parseInt(id));
-                            if (!recordToDelete) return null;
-                            return <DeleteRecordConfirmation record={recordToDelete} onClose={onClose} />
+                        {
+                            param: 'deleteRecord',
+                            render: (id, onClose) => {
+                                const recordToDelete = records.find(r => r.id === parseInt(id));
+                                if (!recordToDelete) return null;
+                                return <DeleteRecordConfirmation record={recordToDelete} onClose={onClose} />
+                            },
                         },
-                    },
-                    {
-                        param: 'deleteActivity',
-                        render: (id, onClose) => {
-                            const activityToDelete = activities.find(a => a.id === parseInt(id));
-                            if (!activityToDelete) return null;
-                            return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
+                        {
+                            param: 'deleteActivity',
+                            render: (id, onClose) => {
+                                const activityToDelete = activities.find(a => a.id === parseInt(id));
+                                if (!activityToDelete) return null;
+                                return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
+                            },
                         },
-                    },
-                ]}
-            />
+                    ]}
+                />
+            </Suspense>
         </>
     );
 }

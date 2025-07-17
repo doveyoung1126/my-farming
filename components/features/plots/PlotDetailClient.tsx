@@ -4,7 +4,7 @@
 import { ActivityCycle, PrismaPlots } from "@/lib/types";
 import { OngoingCycleCard } from "@/components/features/dashboard/OngoingCycleCard";
 import { CompletedCycleCard } from "@/components/features/dashboard/CompletedCycleCard";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { EditPlotForm } from "@/components/features/plots/forms/EditPlotForm";
 import { useRouter } from "next/navigation";
 import { PlotDetailHeader } from "./PlotDetailHeader";
@@ -115,30 +115,32 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
             </main>
 
             {/* 使用 URL 驱动编辑和归档 */}
-            <UrlActionHandler
-                actions={[
-                    {
-                        param: "editPlot",
-                        render: (id, onClose) => {
-                            const editPlot = id === plot.id.toString() ? plot : null
+            <Suspense>
+                <UrlActionHandler
+                    actions={[
+                        {
+                            param: "editPlot",
+                            render: (id, onClose) => {
+                                const editPlot = id === plot.id.toString() ? plot : null
 
-                            if (!editPlot) return null
-                            return (
-                                <FormModal
-                                    isOpen={true}
-                                    onClose={onClose}
-                                    title="编辑地块"
-                                >
-                                    <EditPlotForm
-                                        plot={editPlot}
+                                if (!editPlot) return null
+                                return (
+                                    <FormModal
+                                        isOpen={true}
                                         onClose={onClose}
-                                    />
-                                </FormModal>
-                            )
+                                        title="编辑地块"
+                                    >
+                                        <EditPlotForm
+                                            plot={editPlot}
+                                            onClose={onClose}
+                                        />
+                                    </FormModal>
+                                )
+                            }
                         }
-                    }
-                ]}
-            />
+                    ]}
+                />
+            </Suspense>
 
             {/* Edit Plot Modal using the new generic FormModal */}
             {/*  <FormModal

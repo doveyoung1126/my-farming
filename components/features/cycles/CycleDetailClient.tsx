@@ -1,7 +1,7 @@
 // components/cycles/CycleDetailClient.tsx
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { ActivityCycle, ActivityType, FinancialWithActivity, PrismaPlots, RecordCategoryType } from "@/lib/types";
 import ActivitiesList from '@/components/features/reports/ActivitiesList';
 import { RecordItem } from '@/components/features/reports/RecordItem';
@@ -57,67 +57,69 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
             </div>
 
             {/* URL 驱动执行编辑 */}
-            <UrlActionHandler
-                actions={[
-                    {
-                        param: "editActivity",
-                        render: (id, onClose) => {
-                            const activityToEdit = activities.find(a => a.id === parseInt(id))
-                            if (!activityToEdit) return null
-                            return (
-                                <FormModal
-                                    isOpen={true}
-                                    onClose={onClose}
-                                    title="编辑农事活动"
-                                >
-                                    <EditActivityForm
-                                        initialActivity={activityToEdit} // 传递完整的对象
-                                        activityTypes={activityTypes}
-                                        plots={plots}
-                                        recordCategoryTypes={recordCategoryTypes}
+            <Suspense>
+                <UrlActionHandler
+                    actions={[
+                        {
+                            param: "editActivity",
+                            render: (id, onClose) => {
+                                const activityToEdit = activities.find(a => a.id === parseInt(id))
+                                if (!activityToEdit) return null
+                                return (
+                                    <FormModal
+                                        isOpen={true}
                                         onClose={onClose}
-                                    />
-                                </FormModal>
-                            )
-                        }
-                    }, {
-                        param: "editRecord",
-                        render: (id, onClose) => {
-                            const recordToEdit = records.find(r => r.id === parseInt(id))
-                            if (!recordToEdit) return null
-                            return (
-                                <FormModal
-                                    isOpen={true}
-                                    onClose={onClose}
-                                    title="编辑财务记录"
-                                >
-                                    <EditFinancialRecordForm
-                                        record={recordToEdit}
-                                        recordCategoryTypes={recordCategoryTypes}
+                                        title="编辑农事活动"
+                                    >
+                                        <EditActivityForm
+                                            initialActivity={activityToEdit} // 传递完整的对象
+                                            activityTypes={activityTypes}
+                                            plots={plots}
+                                            recordCategoryTypes={recordCategoryTypes}
+                                            onClose={onClose}
+                                        />
+                                    </FormModal>
+                                )
+                            }
+                        }, {
+                            param: "editRecord",
+                            render: (id, onClose) => {
+                                const recordToEdit = records.find(r => r.id === parseInt(id))
+                                if (!recordToEdit) return null
+                                return (
+                                    <FormModal
+                                        isOpen={true}
                                         onClose={onClose}
-                                    />
-                                </FormModal>
-                            )
-                        }
-                    },
-                    {
-                        param: 'deleteRecord',
-                        render: (id, onClose) => {
-                            const recordToDelete = records.find(r => r.id === parseInt(id));
-                            if (!recordToDelete) return null;
-                            return <DeleteRecordConfirmation record={recordToDelete} onClose={onClose} />
+                                        title="编辑财务记录"
+                                    >
+                                        <EditFinancialRecordForm
+                                            record={recordToEdit}
+                                            recordCategoryTypes={recordCategoryTypes}
+                                            onClose={onClose}
+                                        />
+                                    </FormModal>
+                                )
+                            }
                         },
-                    },
-                    {
-                        param: 'deleteActivity',
-                        render: (id, onClose) => {
-                            const activityToDelete = activities.find(a => a.id === parseInt(id));
-                            if (!activityToDelete) return null;
-                            return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
+                        {
+                            param: 'deleteRecord',
+                            render: (id, onClose) => {
+                                const recordToDelete = records.find(r => r.id === parseInt(id));
+                                if (!recordToDelete) return null;
+                                return <DeleteRecordConfirmation record={recordToDelete} onClose={onClose} />
+                            },
                         },
-                    },
-                ]}
-            />
+                        {
+                            param: 'deleteActivity',
+                            render: (id, onClose) => {
+                                const activityToDelete = activities.find(a => a.id === parseInt(id));
+                                if (!activityToDelete) return null;
+                                return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
+                            },
+                        },
+                    ]}
+                />
+            </Suspense>
         </div>
     );
 }

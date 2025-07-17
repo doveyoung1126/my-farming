@@ -59,7 +59,7 @@ export function UrlActionHandler({ actions }: UrlActionHandlerProps) {
     const newParams = new URLSearchParams(searchParams.toString());
     // Remove all parameters that this handler is configured to listen for.
     actions.forEach(action => newParams.delete(action.param));
-    
+
     const newSearch = newParams.toString();
     const newUrl = newSearch ? `${pathname}?${newSearch}` : pathname;
 

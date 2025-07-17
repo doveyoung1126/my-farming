@@ -3,7 +3,6 @@ import { ActivityWithFinancials } from '@/lib/types'
 import { calculateFinancials } from '@/lib/utils';
 import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
 
 // 活动类型图标映射
 const activityIcons: Record<string, React.JSX.Element> = {
