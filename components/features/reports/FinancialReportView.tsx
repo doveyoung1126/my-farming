@@ -2,17 +2,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FinancialWithActivity } from "@/lib/types";
+import { RecordWithDetails } from "@/lib/types";
 import { RecordItem } from './RecordItem';
 
 /**
  * 财务报告视图 (纯列表)
  */
-export function FinancialReportView({ records }: { records: FinancialWithActivity[] }) {
-    const [groupedRecords, setGroupedRecords] = useState<Map<string, FinancialWithActivity[]>>(new Map());
+export function FinancialReportView({ records }: { records: RecordWithDetails[] }) {
+    const [groupedRecords, setGroupedRecords] = useState<Map<string, RecordWithDetails[]>>(new Map());
 
     useEffect(() => {
-        const groups = new Map<string, FinancialWithActivity[]>();
+        const groups = new Map<string, RecordWithDetails[]>();
         records.forEach(record => {
             const monthKey = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
             if (!groups.has(monthKey)) {
@@ -45,7 +45,7 @@ export function FinancialReportView({ records }: { records: FinancialWithActivit
         <div className="space-y-6">
             {sortedMonths.map(month => (
                 <div key={month}>
-                    <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[252px] bg-slate-100 z-10 rounded-md">{month}</h3>
+                    <h3 className="font-semibold text-slate-600 px-2 py-1 my-4 sticky top-[280px] bg-slate-100 z-10 rounded-md">{month}</h3>
                     <div className="space-y-3">
                         {groupedRecords.get(month)!.map(record => (
                             <RecordItem

@@ -1,27 +1,24 @@
 // app/newdashboard/page.tsx
-import { getAllActiviesDetails, getPlots, getPlotCycles, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
-import { ActivityCycle, PrismaPlots, ActivityWithFinancials, ActivityType, RecordCategoryType } from '@/lib/types';
+import { getPlots, getAllCycles, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
+import { ActivityCycle, Plot, ActivityType, RecordCategoryType } from '@/lib/types';
 import { OngoingCycleCard } from '@/components/features/dashboard/OngoingCycleCard';
 import { CompletedCycleCard } from '@/components/features/dashboard/CompletedCycleCard';
 import Link from 'next/link';
-import { DashboardActions } from '@/components/features/dashboard/DashboardActions'; // 导入新的客户端组件
+import { DashboardActions } from '@/components/features/dashboard/DashboardActions';
 
 export default async function NewDashboardPage() {
 
-    const [plots, activities, activityTypes, recordCategoryTypes] = await Promise.all([
+    // 数据获取逻辑已大大简化
+    const [plots, allCycles, activityTypes, recordCategoryTypes] = await Promise.all([
         getPlots(),
-        getAllActiviesDetails(),
+        getAllCycles(true), // 直接获取所有周期，并计算摘要
         getActivityTypes(),
         getRecordCategoryTypes(),
     ]);
 
-    const allCycles: ActivityCycle[] = plots.flatMap(plot => {
-        const plotActivities = activities.filter(a => a.plotId === plot.id);
-        return getPlotCycles(plotActivities, plot.id, plots).map(cycle => ({ ...cycle, plot }));
-    });
-
+    // 周期过滤逻辑保持不变
     const ongoingCycles = allCycles.filter(cycle => cycle.status === 'ongoing');
-    const completedCycles = allCycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => b.end!.getTime() - a.end!.getTime());
+    const completedCycles = allCycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => new Date(b.endDate!).getTime() - new Date(a.endDate!).getTime());
 
     return (
         <div className="h-full bg-slate-50 overflow-y-auto pb-20">
@@ -33,7 +30,7 @@ export default async function NewDashboardPage() {
                         activityTypes={activityTypes}
                         plots={plots}
                         recordCategoryTypes={recordCategoryTypes}
-                    /> {/* 使用新的客户端组件 */}
+                    />
                 </div>
             </header>
 

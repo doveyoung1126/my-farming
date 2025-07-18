@@ -14,14 +14,14 @@ datasource db {
 }
 
 enum CycleMarker {
-  START  // 周期开始（种植）
-  END    // 周期结束（采收）
+  START
+  END
 }
 
 model ActivityType {
-  id    Int    @id @default(autoincrement())
-  name  String @unique 
-  activities Activity[] 
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  activities  Activity[]
   cycleMarker CycleMarker?
 }
 
@@ -31,10 +31,10 @@ enum RecordCategory {
 }
 
 model RecordCategoryType {
-  id    Int    @id @default(autoincrement())
-  name  String @unique 
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
   category RecordCategory @default(expense)
-  records     Record[]    
+  records  Record[]
 }
 
 model Plot {
@@ -42,29 +42,49 @@ model Plot {
   name       String     @unique
   area       Float
   crop       String?
-  isArchived Boolean    @default(false) // 新增：归档状态
+  isArchived Boolean    @default(false)
   activities Activity[]
+  cycles     Cycle[]
+}
+
+model Cycle {
+  id              Int        @id @default(autoincrement())
+  plot            Plot       @relation(fields: [plotId], references: [id])
+  plotId          Int
+  crop            String?
+  budget          Float?
+  startDate       DateTime
+  endDate         DateTime?
+  status          String     // "ongoing", "completed", "aborted"
+  activities      Activity[] @relation("CycleActivities")
+  startActivity   Activity?  @relation("StartActivity", fields: [startActivityId], references: [id])
+  startActivityId Int?       @unique
+  endActivity     Activity?  @relation("EndActivity", fields: [endActivityId], references: [id])
+  endActivityId   Int?       @unique
 }
 
 model Activity {
-  id          Int               @id @default(autoincrement())
-  type        ActivityType      @relation(fields: [activityTypeId], references: [id])
-  activityTypeId Int            // 关联类型ID
-  date        DateTime          @default(now())
-  plot        Plot              @relation(fields: [plotId], references: [id])
-  plotId      Int
-  crop        String?           // 快照：记录本次活动发生时，地块上种植的作物，以保证历史准确性
-  budget      Float?            // 可选：如果此活动是周期的开始，则可以设置预算
-  records     Record[]    
+  id             Int          @id @default(autoincrement())
+  type           ActivityType @relation(fields: [activityTypeId], references: [id])
+  activityTypeId Int
+  date           DateTime     @default(now())
+  plot           Plot         @relation(fields: [plotId], references: [id])
+  plotId         Int
+  crop           String?      // 作物快照，保证历史准确性
+  records        Record[]
+  cycle          Cycle?       @relation("CycleActivities", fields: [cycleId], references: [id])
+  cycleId        Int?
+  startedCycle   Cycle?       @relation("StartActivity")
+  endedCycle     Cycle?       @relation("EndActivity")
 }
 
 model Record {
-  id          Int                  @id @default(autoincrement())
-  amount      Float           
-  type        RecordCategoryType   @relation(fields: [recordTypeId], references: [id])
-  recordTypeId Int                 // 关联类型ID
-  date        DateTime             @default(now())
-  description String?         
-  activity    Activity?            @relation(fields: [activityId], references: [id])
-  activityId  Int?            
+  id           Int                @id @default(autoincrement())
+  amount       Float
+  type         RecordCategoryType @relation(fields: [recordTypeId], references: [id])
+  recordTypeId Int
+  date         DateTime           @default(now())
+  description  String?
+  activity     Activity?          @relation(fields: [activityId], references: [id])
+  activityId   Int?
 }

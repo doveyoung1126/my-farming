@@ -1,22 +1,20 @@
-// components/newdashboard/CompletedCycleCard.tsx
+// components/features/dashboard/CompletedCycleCard.tsx
 'use client';
 
 import Link from "next/link";
 import { ActivityCycle } from "@/lib/types";
-import { getActivitiesRecordsSummary } from "@/lib/data";
 
 export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
-    const summary = getActivitiesRecordsSummary(cycle.activities);
-    const isProfitable = summary.cycleProfit >= 0;
+    // summary 现在由父组件通过 props 传入
+    const summary = cycle.summary;
+    if (!summary) return null; // 如果没有摘要信息，则不渲染
+
+    const isProfitable = summary.netProfit >= 0;
     const isAborted = cycle.status === 'aborted';
 
     // 预算信息
     const displayBudget = cycle.budget ? ` / ¥${cycle.budget.toLocaleString()}` : '';
-    const budgetStatus = cycle.budget ? (Math.abs(summary.cycleExpense) <= cycle.budget ? '✅ 预算内' : '❗ 超预算') : '';
-
-    // 找到周期的起始活动ID
-    const cycleStartActivity = cycle.activities.find(a => a.cycleMarker === 'START');
-    if (!cycleStartActivity) return null; // 如果没有起始活动，则不渲染卡片
+    const budgetStatus = cycle.budget ? (Math.abs(summary.totalExpense) <= cycle.budget ? '✅ 预算内' : '❗ 超预算') : '';
 
     const getStatusBadge = () => {
         if (isAborted) {
@@ -29,19 +27,21 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
     };
 
     return (
-        <Link href={`/cycles/${cycleStartActivity.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
+        // 直接使用 cycle.id 构建链接
+        <Link href={`/cycles/${cycle.id}`} className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-slate-200">
             <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h3 className="font-bold text-slate-800">{cycle.plot.name}</h3>
-                        <p className="text-sm text-slate-500 mt-1">作物: {cycle.plot.crop || '未指定'}</p>
+                        {/* 直接使用 cycle.crop */}
+                        <p className="text-sm text-slate-500 mt-1">作物: {cycle.crop || '未指定'}</p>
                     </div>
                     {getStatusBadge()}
                 </div>
 
                 <div className="text-center my-4">
                     <p className={`text-4xl font-bold ${isAborted ? 'text-gray-600' : (isProfitable ? 'text-green-600' : 'text-red-600')}`}>
-                        {isAborted ? '-' : (isProfitable ? '+' : '')}¥{isAborted ? Math.abs(summary.cycleExpense).toLocaleString() : summary.cycleProfit.toLocaleString()}
+                        {isAborted ? '-' : (isProfitable ? '+' : '')}¥{isAborted ? Math.abs(summary.totalExpense).toLocaleString() : summary.netProfit.toLocaleString()}
                     </p>
                     {isAborted && <p className="text-xs text-gray-500 mt-1">总投入</p>}
                 </div>
@@ -49,17 +49,17 @@ export const CompletedCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                 <div className="flex justify-around text-center text-sm text-slate-600 border-t border-slate-100 pt-3 mt-4">
                     <div>
                         <p className="text-xs text-slate-500">总收入</p>
-                        <p className="font-semibold">¥{summary.cycleIncome.toLocaleString()}</p>
+                        <p className="font-semibold">¥{summary.totalIncome.toLocaleString()}</p>
                     </div>
                     <div>
                         <p className="text-xs text-slate-500">总支出</p>
-                        <p className="font-semibold">¥{Math.abs(summary.cycleExpense).toLocaleString()}{displayBudget}</p>
+                        <p className="font-semibold">¥{Math.abs(summary.totalExpense).toLocaleString()}{displayBudget}</p>
                         {budgetStatus && <p className="text-xs text-slate-500 mt-0.5">{budgetStatus}</p>}
                     </div>
                     <div>
                         <p className="text-xs text-slate-500">回报率</p>
                         <p className={`font-semibold ${isAborted ? 'text-gray-600' : (isProfitable ? 'text-green-600' : 'text-red-600')}`}>
-                            {isAborted ? 'N/A' : `${summary.cycleRoi.toFixed(1)}%`}
+                            {isAborted ? 'N/A' : `${summary.roi.toFixed(1)}%`}
                         </p>
                     </div>
                 </div>

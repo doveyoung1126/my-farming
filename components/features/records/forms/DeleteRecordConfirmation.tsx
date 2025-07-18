@@ -4,10 +4,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
-import { FinancialWithActivity } from '@/lib/types';
+import { RecordWithDetails } from '@/lib/types';
 
 interface DeleteRecordConfirmationProps {
-    record: FinancialWithActivity;
+    record: RecordWithDetails;
     onClose: () => void;
 }
 
@@ -47,7 +47,7 @@ export function DeleteRecordConfirmation({ record, onClose }: DeleteRecordConfir
         >
             <p>您确定要删除这条财务记录吗？</p>
             <div className="mt-2 p-2 bg-gray-100 rounded-md text-sm">
-                <p><strong>类型:</strong> {record.recordType}</p>
+                <p><strong>类型:</strong> {record.type.name}</p>
                 <p><strong>金额:</strong> ¥{record.amount}</p>
                 <p><strong>日期:</strong> {new Date(record.date).toLocaleDateString()}</p>
                 {record.description && <p><strong>描述:</strong> {record.description}</p>}

@@ -3,12 +3,12 @@
 
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
-import { PrismaPlots } from '@/lib/types';
+import { Plot } from '@/lib/types';
 import { updatePlotAction } from '@/lib/actions'; // 1. 导入 Server Action
 import { useRef, useState } from 'react';
 
 interface EditPlotFormProps {
-    plot: PrismaPlots;
+    plot: Plot;
     onClose: () => void; // 接收一个关闭函数
 }
 

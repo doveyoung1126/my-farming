@@ -4,12 +4,12 @@
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ActionModal } from '@/components/ui/ActionModal';
-import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
+import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 export function DashboardActions({ activityTypes, plots, recordCategoryTypes }: {
     activityTypes: ActivityType[];
-    plots: PrismaPlots[];
+    plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
 }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,7 +17,7 @@ export function DashboardActions({ activityTypes, plots, recordCategoryTypes }: 
 
     return (
         <>
-            <button 
+            <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-emerald-700 transition-colors"
             >
@@ -25,9 +25,9 @@ export function DashboardActions({ activityTypes, plots, recordCategoryTypes }: 
                 快捷操作
             </button>
 
-            <ActionModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
+            <ActionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
                 activityTypes={activityTypes}
                 plots={plots}
                 recordCategoryTypes={recordCategoryTypes}

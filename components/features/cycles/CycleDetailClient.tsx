@@ -1,41 +1,45 @@
 // components/cycles/CycleDetailClient.tsx
 'use client';
 
-import { Suspense, useState } from 'react';
-import { ActivityCycle, ActivityType, FinancialWithActivity, PrismaPlots, RecordCategoryType } from "@/lib/types";
+import { Suspense, useState, useMemo } from 'react';
+import { ActivityCycle, ActivityType, RecordWithDetails, Plot, RecordCategoryType } from "@/lib/types";
 import ActivitiesList from '@/components/features/reports/ActivitiesList';
 import { RecordItem } from '@/components/features/reports/RecordItem';
+import { UrlActionHandler } from '@/components/ui/UrlActionHandler';
 import { FormModal } from '@/components/ui/FormModal';
 import { EditFinancialRecordForm } from '../records/forms/EditFinancialRecordForm';
 import { EditActivityForm } from '../activities/forms/EditActivityForm';
-import { UrlActionHandler } from '@/components/ui/UrlActionHandler';
 import { DeleteRecordConfirmation } from '../records/forms/DeleteRecordConfirmation';
 import { DeleteActivityConfirmation } from '../activities/forms/DeleteActivityConfirmation';
 
 interface CycleDetailClientProps {
     cycle: ActivityCycle
-    plots: PrismaPlots[]
+    plots: Plot[]
     recordCategoryTypes: RecordCategoryType[]
     activityTypes: ActivityType[]
 }
 export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityTypes }: CycleDetailClientProps) {
     const [activeView, setActiveView] = useState('activity'); // 默认显示农事日志
 
-    // 将周期内的财务记录扁平化，并注入关联的活动信息
-    const { activities } = cycle
-    const records: FinancialWithActivity[] = activities.flatMap(activity => {
-        if (!activity.records || activity.records.length === 0) {
-            return [];
-        }
-        return activity.records.map(record => ({
-            ...record,
-            activityId: activity.id,
-            activityType: activity.type,
-            activityDate: activity.date,
-            plotName: activity.plotName,
-            crop: activity.crop,
-        }));
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 按日期降序排序
+    // 使用 useMemo 优化，仅在 cycle.activities 变化时重新计算
+    const records = useMemo(() => {
+        return cycle.activities
+            .flatMap(activity =>
+                // 为每个 record 注入其所属的 activity 的完整信息
+                activity.records.map(record => {
+                    // **关键修复**: 创建一个在类型上与 RecordWithDetails 完全匹配的对象
+                    const recordWithFullActivity = {
+                        ...record,
+                        activity: {
+                            ...activity,
+                            cycle: cycle, // 注入顶层的 cycle 对象以满足类型定义
+                        },
+                    };
+                    return recordWithFullActivity as RecordWithDetails;
+                })
+            )
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [cycle.activities, cycle]);
 
 
     return (
@@ -52,18 +56,18 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
             <div className="p-4">
                 {activeView === 'financial' ?
                     <FinancialRecordListView records={records} /> :
-                    <ActivitiesList activities={cycle.activities} isEditAble />
+                    <ActivitiesList activities={cycle.activities} isEditAble={true} /> // isEditAble 保持 false
                 }
             </div>
 
-            {/* URL 驱动执行编辑 */}
+            {/* URL 驱动执行编辑 -- 暂时注释掉以进行测试 */}
             <Suspense>
                 <UrlActionHandler
                     actions={[
                         {
                             param: "editActivity",
                             render: (id, onClose) => {
-                                const activityToEdit = activities.find(a => a.id === parseInt(id))
+                                const activityToEdit = cycle.activities.find(a => a.id === parseInt(id))
                                 if (!activityToEdit) return null
                                 return (
                                     <FormModal
@@ -77,6 +81,7 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                                             plots={plots}
                                             recordCategoryTypes={recordCategoryTypes}
                                             onClose={onClose}
+                                            cycleBudget={cycle.budget}
                                         />
                                     </FormModal>
                                 )
@@ -112,7 +117,7 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                         {
                             param: 'deleteActivity',
                             render: (id, onClose) => {
-                                const activityToDelete = activities.find(a => a.id === parseInt(id));
+                                const activityToDelete = cycle.activities.find(a => a.id === parseInt(id));
                                 if (!activityToDelete) return null;
                                 return <DeleteActivityConfirmation activity={activityToDelete} onClose={onClose} />
                             },
@@ -124,11 +129,12 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
     );
 }
 
-function FinancialRecordListView({ records }: { records: FinancialWithActivity[] }) {
+function FinancialRecordListView({ records }: { records: RecordWithDetails[] }) {
     if (records.length === 0) return <EmptyState message="没有找到相关的财务记录。" />;
     return (
         <div className="space-y-3">
-            {records.map(record => <RecordItem key={record.id} record={record} isEditAble />)}
+            {/* isEditAble 保持 false */}
+            {records.map(record => <RecordItem key={record.id} record={record} isEditAble={true} />)}
         </div>
     );
 }

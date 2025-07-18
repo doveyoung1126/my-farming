@@ -6,13 +6,13 @@ import { useState, useEffect } from 'react';
 import { AddActivityForm } from '@/components/features/activities/forms/AddActivityForm';
 import { AddFinancialRecordForm } from '@/components/features/records/forms/AddFinancialRecordForm';
 import { AddPlotForm } from '@/components/features/plots/forms/AddPlotForm';
-import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
+import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 
 interface ActionModalProps {
     isOpen: boolean;
     onClose: () => void;
     activityTypes: ActivityType[];
-    plots: PrismaPlots[];
+    plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
     routerRefresh: () => void; // 新增 prop
 }

@@ -2,16 +2,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ActivityType, PrismaPlots, RecordCategoryType, ActivityWithFinancials } from '@/lib/types';
+import { ActivityType, Plot, RecordCategoryType, ActivityInCycle } from '@/lib/types';
 import { Plus, Minus, Loader2 } from 'lucide-react';
-import { updateActivityWithRecordsAction } from '@/lib/actions'; // 1. 导入 Server Action
+import { updateActivityAction } from '@/lib/actions'; // 1. 导入 Server Action
 
 // --- Props 接口 ---
 interface EditActivityFormProps {
     activityTypes: ActivityType[];
-    plots: PrismaPlots[];
+    plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
-    initialActivity: ActivityWithFinancials;
+    initialActivity: ActivityInCycle;
+    cycleBudget?: number | null
     onClose: () => void; // 2. 添加 onClose
 }
 
@@ -30,6 +31,7 @@ export function EditActivityForm({
     recordCategoryTypes,
     initialActivity,
     onClose,
+    cycleBudget
 }: EditActivityFormProps) {
 
     // --- 日期格式化辅助函数 ---
@@ -50,20 +52,23 @@ export function EditActivityForm({
     const originalTime = new Date(initialActivity.date).toTimeString().split(' ')[0];
     const plotId = initialActivity.plotId.toString()
     const [crop, setCrop] = useState(initialActivity.crop || '');
-    const [budget, setBudget] = useState(initialActivity.budget?.toString() || '');
+    const [budget, setBudget] = useState(cycleBudget?.toString() || '');
     const [records, setRecords] = useState<FinancialRecordForm[]>([]);
     const [showFinancials, setShowFinancials] = useState(initialActivity.records.length > 0);
 
+    // 定义 isoDate
+    const isoDate = new Date(`${date}T${originalTime}`).toISOString()
+
     // --- 初始化表单 (保留) ---
     useEffect(() => {
-        const type = activityTypes.find(t => t.name === initialActivity.type);
+        const type = activityTypes.find(t => t.id === initialActivity.type.id);
         if (type) {
             setActivityTypeId(type.id.toString());
         }
 
         if (initialActivity.records.length > 0 && recordCategoryTypes.length > 0) {
             const mappedRecords = initialActivity.records.map(rec => {
-                const recordType = recordCategoryTypes.find(t => t.name === rec.recordType);
+                const recordType = recordCategoryTypes.find(t => t.id === rec.type.id);
                 return {
                     id: rec.id,
                     amount: rec.amount.toString(),
@@ -83,31 +88,22 @@ export function EditActivityForm({
         setIsLoading(true);
         setError(null);
 
-        const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
-        const showBudgetField = selectedActivityType?.cycleMarker === 'START';
+        const formData = new FormData(e.target as HTMLFormElement);
 
-        // 构造 payload
-        const payload = {
-            id: initialActivity.id,
-            activityTypeId: parseInt(activityTypeId),
-            date: new Date(`${date}T${originalTime}`).toISOString(), // 重新组合日期和原始时间
-            plotId: parseInt(plotId),
-            crop: crop || null,
-            budget: showBudgetField && budget ? parseFloat(budget) : null,
-            records: showFinancials ? records.map(rec => {
-                // 从记录自身获取原始时间，如果不存在（新记录），则使用主活动时间
-                const recordTime = rec.originalTime || originalTime;
-                return {
-                    id: rec.id,
-                    amount: parseFloat(rec.amount),
-                    recordTypeId: parseInt(rec.recordTypeId),
-                    description: rec.description || null,
-                    date: new Date(`${rec.date}T${recordTime}`).toISOString(), // 使用正确的原始时间
-                };
-            }) : [],
-        };
+        const recordsPayload = showFinancials ? records.map(rec => {
+            const recordTime = rec.originalTime || originalTime;
+            return {
+                id: rec.id,
+                amount: parseFloat(rec.amount),
+                recordTypeId: parseInt(rec.recordTypeId),
+                description: rec.description || null,
+                date: new Date(`${rec.date}T${recordTime}`).toISOString(),
+            };
+        }) : [];
 
-        const result = await updateActivityWithRecordsAction(payload);
+        formData.set('records', JSON.stringify(recordsPayload));
+
+        const result = await updateActivityAction(initialActivity.id, formData);
 
         if (result?.error) {
             setError(result.error);
@@ -115,7 +111,7 @@ export function EditActivityForm({
         } else {
             setError(null);
             setIsLoading(false);
-            onClose(); // 成功后调用 onClose
+            onClose();
         }
     };
 
@@ -158,6 +154,7 @@ export function EditActivityForm({
                 <label htmlFor="activityType" className="block text-sm font-medium text-gray-700">活动类型 <span className="text-red-500">*</span></label>
                 <select
                     id="activityType"
+                    name="activityTypeId"
                     value={activityTypeId}
                     onChange={(e) => setActivityTypeId(e.target.value)}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
@@ -175,10 +172,11 @@ export function EditActivityForm({
                 <input
                     id="plot"
                     type="text"
-                    value={initialActivity.plotName}
+                    value={initialActivity.plot.name}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     readOnly
                 />
+                <input type="hidden" name="plotId" value={plotId} />
             </div>
 
             <div>
@@ -186,11 +184,13 @@ export function EditActivityForm({
                 <input
                     type="date"
                     id="date"
+                    name="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     required
                 />
+                <input type='hidden' name='isoDate' value={isoDate} />
             </div>
 
             <div>
@@ -198,6 +198,7 @@ export function EditActivityForm({
                 <input
                     type="text"
                     id="crop"
+                    name="crop"
                     value={crop}
                     onChange={(e) => setCrop(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -211,6 +212,7 @@ export function EditActivityForm({
                     <input
                         type="number"
                         id="budget"
+                        name="budget"
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"

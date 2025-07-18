@@ -1,399 +1,241 @@
+// lib/data.ts
+import prisma from './db';
 import {
-    ActivityWithFinancials,
-    PrismaActivityWithFinancials,
-    ActivityCycle, PrismaRecords,
-    PrismaRecordsWhere,
-    FinancialWithActivity,
-    PrismaPlots
-} from './types'
-import prisma from './db'
+  CycleWithDetails,
+  RecordWithDetails,
+  CycleFinancialSummary,
+  PrismaRecordsWhere,
+  Plot,
+  ActivityType,
+  RecordCategoryType,
+  ActivityCycle,
+  cycleWithDetailsValidator,
+  ActivityInCycle, // 导入 cycleWithDetailsValidator
+} from './types';
 
-function transformActivity(activity: PrismaActivityWithFinancials): ActivityWithFinancials {
-    return {
-        id: activity.id,
-        budget: activity.budget,
-        type: activity.type.name,
-        cycleMarker: activity.type.cycleMarker,
-        crop: activity.crop,
-        date: activity.date,
-        plotId: activity.plot.id,
-        plotName: activity.plot.name,
-        plotArea: activity.plot.area,
-        records: activity.records.map(record => ({
-            id: record.id,
-            amount: record.amount,
-            description: record.description,
-            recordType: record.type.name,
-            recordCategory: record.type.category,
-            date: record.date
-        }))
+// -----------------------------------------------------------------------------
+// 数据转换与计算函数
+// -----------------------------------------------------------------------------
+
+/**
+ * 计算单个周期的财务摘要
+ * @param cycle - 包含所有活动和记录的完整周期对象
+ * @returns 财务摘要对象
+ */
+export const getCycleFinancialSummary = (cycle: CycleWithDetails): CycleFinancialSummary => {
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  for (const activity of cycle.activities) {
+    for (const record of activity.records) {
+      if (record.type.category === 'income') {
+        totalIncome += record.amount;
+      } else if (record.type.category === 'expense') {
+        totalExpense += record.amount;
+      }
     }
+  }
+
+  const netProfit = totalIncome + totalExpense;
+  const roi = totalExpense !== 0 ? (netProfit / Math.abs(totalExpense)) * 100 : 0;
+
+  return {
+    totalIncome,
+    totalExpense,
+    netProfit,
+    roi,
+  };
+};
+
+export function calculateFinancials(activity: ActivityInCycle) {
+  const totalIncome = activity.records?.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0) || 0;
+  const totalExpense = activity.records?.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0) || 0;
+  const netAmount = totalIncome + totalExpense;
+
+  return { totalIncome, totalExpense, netAmount };
 }
 
-export const getAllActiviesDetails = async () => {
-    try {
-        const activities: PrismaActivityWithFinancials[] = await prisma.activity.findMany({
-            include: {
-                type: true,
-                plot: true,
-                records: {
-                    include: {
-                        type: true
-                    }
-                }
 
-            },
-            orderBy: {
-                date: 'desc'
-            }
-        })
 
-        return activities.map(transformActivity)
-    }
-    catch (error) {
-        console.error('获取活动数据失败:', error)
-        throw new Error('无法获取活动数据')
-    } finally {
-        await prisma.$disconnect()
-    }
-}
 
-export const getPlots = async (includeArchived = false) => {
-    try {
-        const whereClause = includeArchived ? {} : { isArchived: false };
-        const plots = await prisma.plot.findMany({
-            where: whereClause,
-        });
+// -----------------------------------------------------------------------------
+// 主要数据获取函数 (Getters)
+// -----------------------------------------------------------------------------
 
-        return plots;
-    } catch (error) {
-        console.error('获取农田数据失败:', error);
-        throw new Error('无法获取农田数据');
-    } finally {
-        await prisma.$disconnect();
-    }
+const cycleInclude = cycleWithDetailsValidator.include;
+
+/**
+ * 获取所有地块
+ * @param includeArchived - 是否包含已归档的地块
+ */
+export const getPlots = async (includeArchived = false): Promise<Plot[]> => {
+  try {
+    return await prisma.plot.findMany({
+      where: includeArchived ? {} : { isArchived: false },
+    });
+  } catch (error) {
+    console.error('获取地块数据失败:', error);
+    throw new Error('无法获取地块数据');
+  }
 };
 
-export const getPlotCycles = (activities: ActivityWithFinancials[], plotId: number, plots: PrismaPlots[]) => {
-    const sortedActivities = [...activities].reverse();
-    const generateCycleId = (plotId: number, startDate: Date) => {
-        return `cycle-${plotId}-${startDate.getTime()}`;
-    };
-    const selectPlot = plots.find(p => p.id === plotId);
+/**
+ * 获取所有周期，并可选择附加财务摘要
+ * @param includeSummary - 是否为每个周期计算财务摘要
+ */
+export const getAllCycles = async (includeSummary = false): Promise<ActivityCycle[]> => {
+  try {
+    const cycles = await prisma.cycle.findMany({
+      include: cycleInclude,
+      orderBy: { startDate: 'desc' },
+    });
 
-    if (!selectPlot) return [];
+    if (includeSummary) {
+      return cycles.map(cycle => ({
+        ...cycle,
+        summary: getCycleFinancialSummary(cycle),
+      }));
+    }
 
-    const calculateCycles = () => {
-        let currentCycle: ActivityCycle | null = null;
-        const cycles: ActivityCycle[] = [];
-
-        for (const activity of sortedActivities) {
-            if (activity.cycleMarker === 'START') {
-                if (currentCycle) {
-                    // 如果当前周期存在，但又遇到了一个新的开始标记，则将当前周期视为“中止”
-                    currentCycle.status = 'aborted';
-                    currentCycle.end = activity.date; // 中止日期为新周期的开始日期
-                    cycles.push(currentCycle);
-                }
-                currentCycle = {
-                    id: generateCycleId(plotId, activity.date),
-                    plotId: plotId,
-                    plot: selectPlot,
-                    start: activity.date,
-                    budget: activity.budget,
-                    end: null,
-                    activities: [activity],
-                    status: 'ongoing', // 新周期的初始状态为“进行中”
-                };
-            } else if (activity.cycleMarker === 'END' && currentCycle) {
-                currentCycle.end = activity.date;
-                currentCycle.status = 'completed';
-                currentCycle.activities.push(activity);
-                cycles.push(currentCycle);
-                currentCycle = null;
-            } else if (currentCycle) {
-                currentCycle.activities.push(activity);
-            }
-        }
-        if (currentCycle) {
-            cycles.push(currentCycle);
-        }
-        return cycles;
-    };
-    return calculateCycles();
+    return cycles;
+  } catch (error) {
+    console.error('获取所有周期数据失败:', error);
+    throw new Error('无法获取周期数据');
+  }
 };
 
-export const getActivitiesRecordsSummary = (activities: ActivityWithFinancials[]) => {
-    // const expenseRecords = activities.filter(activity => activity.)
-    const activitiesRecordSummary = activities.map(activity => {
-        return getActivityRecordsSummary(activity)
-    })
-    const totalExpense = activitiesRecordSummary.reduce((sum, summary) => {
-        return sum + summary.expense
-    }, 0)
-    const totalIncom = activitiesRecordSummary.reduce((sum, summary) => {
-        return sum + summary.income
-    }, 0)
-
-    return {
-        cycleExpense: totalExpense,
-        cycleIncome: totalIncom,
-        cycleProfit: totalExpense + totalIncom,
-        cycleRoi: (totalExpense + totalIncom) / Math.abs(totalExpense) * 100
-    }
-}
-
-const getActivityRecordsSummary = (activity: ActivityWithFinancials) => {
-    const { records } = activity
-    const totalExpense = records.reduce((sum, record) => {
-        return record.amount > 0 ? sum : sum + record.amount
-    }, 0)
-    const totalIncom = records.reduce((sum, record) => {
-        return record.amount > 0 ? sum + record.amount : sum
-    }, 0)
-
-    return {
-        activityId: activity.id,
-        expense: totalExpense,
-        income: totalIncom,
-        profit: totalIncom + totalExpense
-    }
-}
-
-export const getRecordsWithActivity = async (date1?: Date, date2?: Date): Promise<FinancialWithActivity[]> => {
-    try {
-        const where: PrismaRecordsWhere = {}
-
-        if (date1 && date2) {
-            const [start, end] = [date1, date2].sort((a, b) => a.getTime() - b.getTime())
-
-            where.date = {
-                gte: start,
-                lte: new Date(end.setHours(23, 59, 59, 999))
-            }
-        } else if (date1) {
-            const start = new Date(date1)
-            start.setHours(0, 0, 0, 0)
-
-            const end = new Date(date1)
-            end.setHours(23, 59, 59, 999)
-
-            where.date = {
-                gte: start,
-                lte: end
-            }
-        }
-        const records: PrismaRecords[] = await prisma.record.findMany({
-            where,
-            include: {
-                type: true,
-                activity: {
-                    include: {
-                        type: true,
-                        plot: true
-                    }
-                }
-            },
-            orderBy: {
-                date: 'desc'
-            }
-        })
-
-        return records.map(transformRecord)
-
-        function transformRecord(record: PrismaRecords): FinancialWithActivity {
-            return {
-                id: record.id,
-                amount: record.amount,
-                date: record.date,
-                description: record.description,
-                recordType: record.type.name,
-                recordCategory: record.type.category,
-                activityId: record.activity?.id,
-                activityDate: record.activity?.date,
-                activityType: record.activity?.type.name,
-                plotName: record.activity?.plot.name,
-                crop: record.activity?.plot.crop
-            }
-        }
-    }
-    catch (error) {
-        console.log('获取财务数据失败：', error)
-        throw new Error('无法获取财务数据')
-    }
-    finally {
-        await prisma.$disconnect();
-    }
-};
-
-export const getActivityTypes = async () => {
-    try {
-        const activityTypes = await prisma.activityType.findMany();
-        return activityTypes;
-    } catch (error) {
-        console.error('获取活动类型失败:', error);
-        throw new Error('无法获取活动类型');
-    } finally {
-        await prisma.$disconnect();
-    }
-};
-
-export const getRecordCategoryTypes = async () => {
-    try {
-        const recordCategoryTypes = await prisma.recordCategoryType.findMany();
-        return recordCategoryTypes;
-    } catch (error) {
-        console.error('获取财务记录类型失败:', error);
-        throw new Error('无法获取财务记录类型');
-    } finally {
-        await prisma.$disconnect();
-    }
-};
-
-export const getPlotDetails = async (plotId: number) => {
-    try {
-        const plot = await prisma.plot.findUnique({
-            where: { id: plotId },
-        });
-
-        if (!plot) {
-            return null;
-        }
-
-        const activitiesOnPlot: PrismaActivityWithFinancials[] = await prisma.activity.findMany({
-            where: { plotId: plotId },
-            include: {
-                type: true,
-                plot: true,
-                records: {
-                    include: {
-                        type: true
-                    }
-                }
-            },
-            orderBy: {
-                date: 'desc'
-            }
-        });
-
-        const transformedActivities = activitiesOnPlot.map(transformActivity);
-
-        // 获取所有地块（包括归档的），因为 getPlotCycles 需要
-        const allPlots = await getPlots(true);
-
-        const cyclesOnPlot = getPlotCycles(transformedActivities, plotId, allPlots);
-
-        // 计算该地块所有活动的汇总财务数据
-        const plotSummary = getActivitiesRecordsSummary(transformedActivities);
-
-        return {
-            plot,
-            activities: transformedActivities,
-            cycles: cyclesOnPlot,
-            summary: plotSummary,
-        };
-
-    } catch (error) {
-        console.error('获取地块详情失败:', error);
-        throw new Error('无法获取地块详情');
-    } finally {
-        await prisma.$disconnect();
-    }
-};
-
+/**
+ * 根据 ID 获取单个周期的详细信息
+ * @param cycleId - 周期的 ID
+ */
 export const getCycleDetailsById = async (cycleId: number): Promise<ActivityCycle | null> => {
-    try {
-        // 1. 找到周期的起始活动
-        const startActivity = await prisma.activity.findUnique({
-            where: { id: cycleId },
-            include: {
-                type: true,
-                plot: true,
-            }
-        });
+  try {
+    const cycle = await prisma.cycle.findUnique({
+      where: { id: cycleId },
+      include: cycleInclude,
+    });
 
-        if (!startActivity || startActivity.type.cycleMarker !== 'START') {
-            console.error('未找到对应的周期起始活动');
-            return null;
-        }
-
-        // 2. 找到下一个周期的起始活动，以确定当前周期的结束时间
-        const nextCycleStart = await prisma.activity.findFirst({
-            where: {
-                plotId: startActivity.plotId,
-                type: { cycleMarker: 'START' },
-                date: { gt: startActivity.date },
-            },
-            orderBy: {
-                date: 'asc'
-            }
-        });
-
-        // 3. 找到此周期的结束标记活动（如果有）
-        const endActivity = await prisma.activity.findFirst({
-            where: {
-                plotId: startActivity.plotId,
-                type: { cycleMarker: 'END' },
-                date: { gt: startActivity.date },
-                ...(nextCycleStart && { date: { lt: nextCycleStart.date } })
-            },
-            orderBy: {
-                date: 'asc'
-            }
-        });
-
-        let status: 'ongoing' | 'completed' | 'aborted' = 'ongoing';
-        let endDate: Date | null = null;
-
-        if (endActivity) {
-            status = 'completed';
-            endDate = endActivity.date;
-        } else if (nextCycleStart) {
-            status = 'aborted';
-            endDate = nextCycleStart.date;
-        }
-
-        // 4. 查询此周期内的所有活动
-        const activitiesInCycle = await prisma.activity.findMany({
-            where: {
-                plotId: startActivity.plotId,
-                date: {
-                    gte: startActivity.date,
-                    ...(endDate && { lt: endDate })
-                }
-            },
-            include: {
-                type: true,
-                plot: true,
-                records: {
-                    include: {
-                        type: true
-                    }
-                }
-            },
-            orderBy: {
-                date: 'desc'
-            }
-        });
-
-        // 5. 构建并返回周期对象
-        const cycle: ActivityCycle = {
-            id: `cycle-${startActivity.plotId}-${startActivity.date.getTime()}`,
-            plotId: startActivity.plotId,
-            plot: startActivity.plot,
-            start: startActivity.date,
-            end: endDate,
-            budget: startActivity.budget,
-            activities: activitiesInCycle.map(transformActivity),
-            status: status,
-        };
-
-        return cycle;
-
-    } catch (error) {
-        console.error('获取周期详情失败:', error);
-        throw new Error('无法获取周期详情');
-    } finally {
-        await prisma.$disconnect();
+    if (cycle) {
+      return {
+        ...cycle,
+        summary: getCycleFinancialSummary(cycle),
+      }
     }
+
+    return null;
+
+  } catch (error) {
+    console.error(`获取周期详情失败 (ID: ${cycleId}):`, error);
+    throw new Error('无法获取周期详情');
+  }
+};
+
+/**
+ * 获取单个地块的详细信息，包括其所有周期
+ * @param plotId - 地块的 ID
+ */
+export const getPlotDetails = async (plotId: number) => {
+  try {
+    const plot = await prisma.plot.findUnique({
+      where: { id: plotId },
+    });
+
+    if (!plot) return null;
+
+    const cyclesOnPlot = await prisma.cycle.findMany({
+      where: { plotId: plotId },
+      include: cycleInclude,
+      orderBy: { startDate: 'desc' },
+    });
+
+    const cyclesWithSummary = cyclesOnPlot.map(cycle => ({
+      ...cycle,
+      summary: getCycleFinancialSummary(cycle),
+    }));
+
+    return {
+      plot,
+      cycles: cyclesWithSummary,
+    };
+
+  } catch (error) {
+    console.error(`获取地块详情失败 (ID: ${plotId}):`, error);
+    throw new Error('无法获取地块详情');
+  }
+};
+
+
+/**
+ * 获取所有财务记录，并可按日期范围过滤
+ * @param dateRange - 可选的日期范围 { from: Date, to: Date }
+ */
+export const getRecordsWithDetails = async (dateRange?: { from: Date, to: Date }): Promise<RecordWithDetails[]> => {
+  try {
+    const where: PrismaRecordsWhere = {};
+    if (dateRange) {
+      where.date = {
+        gte: dateRange.from,
+        lte: dateRange.to,
+      };
+    }
+
+    return await prisma.record.findMany({
+      where,
+      include: {
+        type: true,
+        activity: {
+          include: {
+            type: true,
+            plot: true,
+            cycle: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+  } catch (error) {
+    console.error('获取财务数据失败:', error);
+    throw new Error('无法获取财务数据');
+  }
+};
+
+export const getAllActivities = async () => {
+  try {
+    return await prisma.activity.findMany({
+      include: {
+        type: true,
+        plot: true,
+        records: { include: { type: true } },
+      },
+      orderBy: { date: 'desc' },
+    });
+  } catch (error) {
+    console.error('获取所有活动数据失败:', error);
+    throw new Error('无法获取活动数据');
+  }
+};
+
+
+// -----------------------------------------------------------------------------
+// 基础数据获取函数 (用于表单等)
+// -----------------------------------------------------------------------------
+
+export const getActivityTypes = async (): Promise<ActivityType[]> => {
+  try {
+    return await prisma.activityType.findMany();
+  } catch (error) {
+    console.error('获取活动类型失败:', error);
+    throw new Error('无法获取活动类型');
+  }
+};
+
+export const getRecordCategoryTypes = async (): Promise<RecordCategoryType[]> => {
+  try {
+    return await prisma.recordCategoryType.findMany();
+  } catch (error) {
+    console.error('获取财务记录类型失败:', error);
+    throw new Error('无法获取财务记录类型');
+  }
 };

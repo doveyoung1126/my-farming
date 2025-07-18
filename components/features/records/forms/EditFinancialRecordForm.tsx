@@ -3,12 +3,12 @@
 
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
-import { FinancialWithActivity, RecordCategoryType } from '@/lib/types';
+import { RecordWithDetails, RecordCategoryType } from '@/lib/types';
 import { updateFinancialRecordAction } from '@/lib/actions';
 import { useEffect, useRef, useState } from 'react';
 
 interface EditFinancialRecordFormProps {
-    record: FinancialWithActivity;
+    record: RecordWithDetails;
     recordCategoryTypes: RecordCategoryType[];
     onClose: () => void;
 }
@@ -48,7 +48,7 @@ export function EditFinancialRecordForm({
         }
     };
 
-    const initialRecordType = recordCategoryTypes.find(t => t.name === record.recordType);
+    const initialRecordType = recordCategoryTypes.find(t => t.id === record.type.id);
 
     // --- 正确的、健-壮的日期处理 ---
 
@@ -97,10 +97,10 @@ export function EditFinancialRecordForm({
             </div>
 
             <div>
-                <label htmlFor="recordCategoryId" className="block text-sm font-medium text-gray-700">财务类型 <span className="text-red-500">*</span></label>
+                <label htmlFor="recordTypeId" className="block text-sm font-medium text-gray-700">财务类型 <span className="text-red-500">*</span></label>
                 <select
-                    id="recordCategoryId"
-                    name="recordCategoryId"
+                    id="recordTypeId"
+                    name="recordTypeId"
                     defaultValue={initialRecordType ? initialRecordType.id.toString() : ''}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required

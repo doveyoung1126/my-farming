@@ -1,19 +1,18 @@
 // components/plots/PlotDetailClient.tsx
 'use client';
 
-import { ActivityCycle, PrismaPlots } from "@/lib/types";
+import { ActivityCycle, Plot } from "@/lib/types";
 import { OngoingCycleCard } from "@/components/features/dashboard/OngoingCycleCard";
 import { CompletedCycleCard } from "@/components/features/dashboard/CompletedCycleCard";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useMemo } from "react";
 import { EditPlotForm } from "@/components/features/plots/forms/EditPlotForm";
 import { useRouter } from "next/navigation";
 import { PlotDetailHeader } from "./PlotDetailHeader";
-import { getActivitiesRecordsSummary } from "@/lib/data";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { FormModal } from "@/components/ui/FormModal";
 import { UrlActionHandler } from "@/components/ui/UrlActionHandler";
 
-export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: ActivityCycle[] }) {
+export function PlotDetailClient({ plot, cycles }: { plot: Plot, cycles: ActivityCycle[] }) {
     // --- State for Modals ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
@@ -26,9 +25,20 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
     const router = useRouter();
 
     const ongoingCycles = cycles.filter(cycle => cycle.status === 'ongoing');
-    const completedCycles = cycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => b.end!.getTime() - a.end!.getTime());
+    const completedCycles = cycles.filter(cycle => cycle.status === 'completed' || cycle.status === 'aborted').sort((a, b) => new Date(b.endDate!).getTime() - new Date(a.endDate!).getTime());
 
-    const summary = getActivitiesRecordsSummary(cycles.flatMap(c => c.activities));
+    // 在客户端计算总的财务摘要
+    const totalSummary = useMemo(() => {
+        return cycles.reduce((acc, cycle) => {
+            if (cycle.summary) {
+                acc.totalIncome += cycle.summary.totalIncome;
+                acc.totalExpense += cycle.summary.totalExpense;
+                acc.netProfit += cycle.summary.netProfit;
+            }
+            return acc;
+        }, { totalIncome: 0, totalExpense: 0, netProfit: 0 });
+    }, [cycles]);
+
 
     // --- Archive Handlers ---
     const handleOpenArchiveConfirm = () => {
@@ -46,10 +56,12 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
         setIsLoading(true);
         setError(null);
         try {
+            // 注意：这里的 API 调用现在应该使用 PATCH 或一个专门的 action
+            // 为了保持最小改动，暂时保留 fetch 调用，但理想状态下应改为 server action
             const response = await fetch(`/api/plots/${plot.id}`, {
-                method: 'PATCH',
+                method: 'PUT', // 应该改为 PATCH，或分离为 action
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isArchived: !plot.isArchived }),
+                body: JSON.stringify({ ...plot, isArchived: !plot.isArchived }),
             });
 
             if (!response.ok) {
@@ -78,9 +90,9 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
                 {/* ... main content ... */}
                 <div className="p-4">
                     <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-lg overflow-hidden shadow">
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.cycleIncome.toLocaleString()}</p></div>
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.cycleExpense).toLocaleString()}</p></div>
-                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.cycleProfit) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{summary.cycleProfit.toLocaleString()}</p></div>
+                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{totalSummary.totalIncome.toLocaleString()}</p></div>
+                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(totalSummary.totalExpense).toLocaleString()}</p></div>
+                        <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(totalSummary.netProfit) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{totalSummary.netProfit.toLocaleString()}</p></div>
                     </div>
                 </div>
 
@@ -114,16 +126,13 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
                 </div>
             </main>
 
-            {/* 使用 URL 驱动编辑和归档 */}
             <Suspense>
                 <UrlActionHandler
                     actions={[
                         {
                             param: "editPlot",
                             render: (id, onClose) => {
-                                const editPlot = id === plot.id.toString() ? plot : null
-
-                                if (!editPlot) return null
+                                if (id !== plot.id.toString()) return null;
                                 return (
                                     <FormModal
                                         isOpen={true}
@@ -131,33 +140,17 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
                                         title="编辑地块"
                                     >
                                         <EditPlotForm
-                                            plot={editPlot}
+                                            plot={plot}
                                             onClose={onClose}
                                         />
                                     </FormModal>
-                                )
+                                );
                             }
                         }
                     ]}
                 />
             </Suspense>
 
-            {/* Edit Plot Modal using the new generic FormModal */}
-            {/*  <FormModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                title="编辑地块"
-            >
-                <EditPlotForm
-                    plot={plot}
-                    onSubmit={handleConfirmEdit}
-                    onCancel={() => setIsEditModalOpen(false)}
-                    isLoading={isLoading}
-                    error={error}
-                />
-            </FormModal> */}
-
-            {/* Archive/Restore Confirmation Modal */}
             <ConfirmationModal
                 isOpen={isArchiveConfirmOpen}
                 onClose={() => setIsArchiveConfirmOpen(false)}
@@ -172,3 +165,4 @@ export function PlotDetailClient({ plot, cycles }: { plot: PrismaPlots, cycles: 
         </>
     );
 }
+

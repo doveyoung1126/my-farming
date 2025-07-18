@@ -3,7 +3,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ActivityWithFinancials, FinancialWithActivity, PrismaPlots, RecordCategoryType, ActivityType } from '@/lib/types';
+import { ActivityWithDetails, RecordWithDetails, Plot, RecordCategoryType, ActivityType } from '@/lib/types';
 import { FinancialReportView } from './FinancialReportView';
 import { ActivityLogView } from './ActivityLogView';
 import { Calendar, ChevronDown } from 'lucide-react';
@@ -25,9 +25,9 @@ type DateFilter = 'month' | 'quarter' | 'year' | 'custom';
  * 报告页面的客户端容器组件
  */
 export function ReportsClient({ activities, records, plots, recordCategoryTypes, activityTypes }: {
-    activities: ActivityWithFinancials[];
-    records: FinancialWithActivity[];
-    plots: PrismaPlots[];
+    activities: ActivityWithDetails[];
+    records: RecordWithDetails[];
+    plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
     activityTypes: ActivityType[];
 }) {
@@ -71,7 +71,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
         return records.filter(r => {
             const recordDate = new Date(r.date);
             const inDateRange = (!dateRange.start || recordDate >= dateRange.start) && (!dateRange.end || recordDate <= dateRange.end);
-            const matchesCategory = financialFilter === 'all' || r.recordCategory === financialFilter;
+            const matchesCategory = financialFilter === 'all' || r.type.category === financialFilter;
             return inDateRange && matchesCategory;
         });
     }, [records, dateRange, financialFilter]);
@@ -88,7 +88,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
     // --- 动态UI计算 (不受影响) ---
     const summary = useMemo(() => {
         return filteredRecords.reduce((acc, record) => {
-            if (record.recordCategory === 'income') acc.income += record.amount; else acc.expense += record.amount;
+            if (record.type.category === 'income') acc.income += record.amount; else acc.expense += record.amount;
             return acc;
         }, { income: 0, expense: 0 });
     }, [filteredRecords]);
@@ -196,6 +196,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                     <FormModal isOpen={true} onClose={onClose} title="编辑农事活动">
                                         <EditActivityForm
                                             initialActivity={activityToEdit}
+                                            cycleBudget={null} // 报表页面没有周期的概念，所以 budget 为 null
                                             activityTypes={activityTypes}
                                             plots={plots}
                                             recordCategoryTypes={recordCategoryTypes}
@@ -243,4 +244,3 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
         </>
     );
 }
-

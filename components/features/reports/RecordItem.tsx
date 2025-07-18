@@ -1,17 +1,18 @@
 // components/reports/RecordItem.tsx
 'use client';
 
-import { FinancialWithActivity } from "@/lib/types";
+import { RecordWithDetails } from "@/lib/types"; // 使用新的、精确的类型
 import { Link as LinkIcon, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface RecordItemProps {
-    record: FinancialWithActivity;
+    record: RecordWithDetails; // 更新 Prop 类型
     isEditAble?: boolean
 }
 
 export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
-    const isIncome = record.recordCategory === 'income';
+    // record.type 现在是一个对象
+    const isIncome = record.type.category === 'income';
 
     return (
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
@@ -22,9 +23,9 @@ export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                             }`}>
-                            {record.recordType}
+                            {record.type.name} {/* 从 record.type 对象中获取 name */}
                         </span>
-                        {record.activityType && (
+                        {record.activity && ( // 检查 activity 对象是否存在
                             <span className="ml-2 text-xs text-gray-500 flex items-center">
                                 <LinkIcon className="w-3 h-3 mr-1" />
                                 关联活动
@@ -38,10 +39,11 @@ export function RecordItem({ record, isEditAble = false }: RecordItemProps) {
                         </h3>
                     )}
 
-                    {record.activityType && record.plotName && (
+                    {record.activity && ( // 检查 activity 对象是否存在
                         <div className="mt-2 flex items-center text-sm text-gray-500">
                             <div className="bg-gray-100 px-2 py-1 rounded-md">
-                                {record.plotName} · {record.activityType}
+                                {/* 从嵌套结构中获取数据 */}
+                                {record.activity.plot.name} · {record.activity.type.name}
                             </div>
                         </div>
                     )}

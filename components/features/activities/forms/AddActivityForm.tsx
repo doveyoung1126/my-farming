@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { ActivityType, PrismaPlots, RecordCategoryType } from '@/lib/types';
+import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 import { createActivityAction } from '@/lib/actions';
 import { Loader2, Plus, Minus } from 'lucide-react';
 
 interface AddActivityFormProps {
     activityTypes: ActivityType[];
-    plots: PrismaPlots[];
+    plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
     onSuccess: () => void;
     onCancel: () => void;
@@ -23,15 +23,15 @@ interface FinancialRecordForm {
 }
 
 const initialState = {
-  error: null,
-  success: false,
+    error: null,
+    success: false,
 };
 
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <button 
-            type="submit" 
+        <button
+            type="submit"
             className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
             disabled={pending}
         >
@@ -51,7 +51,7 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-    
+
     const [activityTypeId, setActivityTypeId] = useState('');
     const [plotId, setPlotId] = useState('');
     const [crop, setCrop] = useState('');
@@ -76,7 +76,7 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
             setCrop('');
         }
     }, [plotId, plots]);
-    
+
     useEffect(() => {
         // When hiding the financial section, clear the records
         if (!showFinancials) {
@@ -271,9 +271,9 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
 
             {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
-                <button 
-                    type="button" 
-                    onClick={onCancel} 
+                <button
+                    type="button"
+                    onClick={onCancel}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     取消

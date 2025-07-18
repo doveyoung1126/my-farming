@@ -1,6 +1,6 @@
-// components/ActivitiesList.tsx
-import { ActivityWithFinancials } from '@/lib/types'
-import { calculateFinancials } from '@/lib/utils';
+// components/reports/ActivitiesList.tsx
+import { ActivityInCycle } from '@/lib/types'; // 使用新的、精确的派生类型
+import { calculateFinancials } from '@/lib/data';
 import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,68 +20,61 @@ const ActivitiesList = ({
     activities,
     isEditAble = false
 }: {
-    activities: ActivityWithFinancials[];
+    activities: ActivityInCycle[]; // 更新 Prop 类型
     isEditAble?: boolean
 }) => {
     return (
         <div className="space-y-3 mb-20">
             {activities.map((activity) => {
-                // 获取该活动的总收支
                 const { totalIncome, totalExpense, netAmount } = calculateFinancials(activity);
-
-                // 获取活动类型图标
-                const activityIcon = activityIcons[activity.type] || activityIcons['默认'];
+                const activityIcon = activityIcons[activity.type.name] || activityIcons['默认'];
 
                 return (
                     <div
-                        key={`${activity.type}-${activity.id}`}
+                        key={activity.id}
                         className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow"
                     >
                         {/* 活动头部 */}
                         <div className="flex items-start p-4 border-b border-gray-100">
-                            {/* 活动图标 */}
                             <div className="flex-shrink-0 mt-0.5 mr-3 p-2 bg-gray-50 rounded-lg">
                                 {activityIcon}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                {/* 活动标题和日期 */}
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-semibold text-gray-800 truncate">
-                                        {activity.plotName} · {activity.type}
+                                        {activity.plot.name} · {activity.type.name}
                                     </h3>
-                                    <div className="flex items-center"> {/* Wrap date and edit button */}
-                                        <span className="text-sm text-gray-500 whitespace-nowrap ml-2 flex items-center"
-                                            suppressHydrationWarning>
+                                    <div className="flex items-center">
+                                        <span className="text-sm text-gray-500 whitespace-nowrap ml-2 flex items-center" suppressHydrationWarning>
                                             <CalendarDays className="w-4 h-4 mr-1 text-gray-400" />
-                                            {activity.date.toLocaleDateString('zh-CN')}
+                                            {new Date(activity.date).toLocaleDateString('zh-CN')}
                                         </span>
-                                        {/* Edit Button */}
-                                        {isEditAble && (<div className='flex items-center'>
-                                            <Link
-                                                href={{ query: { editActivity: activity.id.toString() } }}
-                                                scroll={false} // Prevent scrolling to top on URL change
-                                                replace
-                                                className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-blue-600"
-                                                aria-label="编辑活动"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </Link>
-                                            <Link
-                                                href={{ query: { deleteActivity: activity.id.toString() } }}
-                                                scroll={false}
-                                                replace
-                                                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-red-600"
-                                                aria-label="删除活动"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Link>
-                                        </div>
+                                        {isEditAble && (
+                                            <div className='flex items-center'>
+                                                <Link
+                                                    href={{ query: { editActivity: activity.id.toString() } }}
+                                                    scroll={false}
+                                                    replace
+                                                    className="ml-2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                                                    aria-label="编辑活动"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </Link>
+                                                <Link
+                                                    href={{ query: { deleteActivity: activity.id.toString() } }}
+                                                    scroll={false}
+                                                    replace
+                                                    className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                                                    aria-label="删除活动"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Link>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
 
-                                {/* 财务摘要 */}
                                 <div className="flex items-center mt-2 space-x-3">
                                     {totalIncome > 0 && (
                                         <span className="text-xs font-medium px-2 py-1 bg-green-50 text-green-700 rounded-full flex items-center">
@@ -105,7 +98,6 @@ const ActivitiesList = ({
                                 <div className="text-xs text-gray-500 font-medium mb-2 flex items-center">
                                     关联财务记录
                                 </div>
-
                                 <div className="space-y-2">
                                     {activity.records.map((record) => (
                                         <div
@@ -114,28 +106,19 @@ const ActivitiesList = ({
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-gray-700 truncate">{record.description || '未命名记录'}</p>
-                                                <p className="text-xs text-gray-400 mt-0.5"
-                                                    suppressHydrationWarning>
-                                                    {record.date.toLocaleDateString('zh-CN')}
+                                                <p className="text-xs text-gray-400 mt-0.5" suppressHydrationWarning>
+                                                    {new Date(record.date).toLocaleDateString('zh-CN')}
                                                 </p>
                                             </div>
-                                            <span
-                                                className={`ml-2 font-medium whitespace-nowrap ${record.amount > 0
-                                                    ? 'text-green-600'
-                                                    : 'text-red-600'
-                                                    }`}
-                                            >
+                                            <span className={`ml-2 font-medium whitespace-nowrap ${record.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                 {record.amount > 0 ? '+' : ''}
                                                 {record.amount.toLocaleString()}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* 净值显示 */}
                                 {activity.records.length > 1 && (
-                                    <div className={`flex justify-between items-center mt-3 pt-3 border-t border-gray-200 ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                    <div className={`flex justify-between items-center mt-3 pt-3 border-t border-gray-200 ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         <span className="font-medium">活动净值</span>
                                         <span className="font-semibold">
                                             {netAmount >= 0 ? '+' : ''}

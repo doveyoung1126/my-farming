@@ -1,13 +1,13 @@
 // components/records/Records.tsx
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { FinancialWithActivity } from '@/lib/types';
+import { RecordWithDetails } from '@/lib/types';
 import { TrendingUp, TrendingDown, Link as LinkIcon, Calendar, ChevronDown } from 'lucide-react';
 
 export function Records({
     records,
 }: {
-    records: FinancialWithActivity[];
+    records: RecordWithDetails[];
 }) {
 
     // 时间过滤状态
@@ -66,8 +66,8 @@ export function Records({
 
 
     // 按月份分组记录
-    const groupByMonth = (records: FinancialWithActivity[]) => {
-        const groups: Record<string, FinancialWithActivity[]> = {};
+    const groupByMonth = (records: RecordWithDetails[]) => {
+        const groups: Record<string, RecordWithDetails[]> = {};
 
         records.forEach(record => {
             const monthKey = record.date.toLocaleDateString('zh-CN', {
@@ -86,8 +86,8 @@ export function Records({
     };
 
     // 对每个月的记录按日期倒序排序（最新的在前）
-    const sortRecords = (groups: Record<string, FinancialWithActivity[]>) => {
-        const sortedGroups: Record<string, FinancialWithActivity[]> = {};
+    const sortRecords = (groups: Record<string, RecordWithDetails[]>) => {
+        const sortedGroups: Record<string, RecordWithDetails[]> = {};
         Object.keys(groups).forEach(month => {
             sortedGroups[month] = groups[month].sort((a, b) =>
                 new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -103,7 +103,7 @@ export function Records({
         });
 
         // 创建一个新的对象，按照排序后的月份顺序
-        const result: Record<string, FinancialWithActivity[]> = {};
+        const result: Record<string, RecordWithDetails[]> = {};
         sortedMonths.forEach(month => {
             result[month] = sortedGroups[month];
         });
@@ -112,7 +112,7 @@ export function Records({
     };
 
     // 初始化分组
-    const [groupedRecords, setGroupedRecords] = useState<Record<string, FinancialWithActivity[]>>({});
+    const [groupedRecords, setGroupedRecords] = useState<Record<string, RecordWithDetails[]>>({});
 
     useEffect(() => {
         const grouped = groupByMonth(filteredRecords);
@@ -227,7 +227,7 @@ export function Records({
                                 <p className="text-xs text-gray-500">期间收入</p>
                                 <p className="text-lg font-bold text-green-600">
                                     ¥{filteredRecords
-                                        .filter(r => r.recordCategory === 'income')
+                                        .filter(r => r.type.category === 'income')
                                         .reduce((sum, r) => sum + r.amount, 0)
                                         .toLocaleString('zh-CN')}
                                 </p>
@@ -244,7 +244,7 @@ export function Records({
                                 <p className="text-xs text-gray-500">期间支出</p>
                                 <p className="text-lg font-bold text-red-600">
                                     ¥{filteredRecords
-                                        .filter(r => r.recordCategory === 'expense')
+                                        .filter(r => r.type.category === 'expense')
                                         .reduce((sum, r) => sum + Math.abs(r.amount), 0)
                                         .toLocaleString('zh-CN')}
                                 </p>
@@ -304,13 +304,13 @@ export function Records({
 }
 
 // 计算支出百分比（用于进度条）
-const expensePercentage = (records: FinancialWithActivity[]) => {
+const expensePercentage = (records: RecordWithDetails[]) => {
     const totalExpense = records
-        .filter(r => r.recordCategory === 'expense' || !r.recordCategory)
+        .filter(r => r.type.category === 'expense' || !r.type.category)
         .reduce((sum, r) => sum + Math.abs(r.amount), 0);
 
     const totalIncome = records
-        .filter(r => r.recordCategory === 'income')
+        .filter(r => r.type.category === 'income')
         .reduce((sum, r) => sum + r.amount, 0);
 
     if (totalExpense + totalIncome === 0) return 50;
@@ -319,8 +319,8 @@ const expensePercentage = (records: FinancialWithActivity[]) => {
 };
 
 // 单个记录项组件
-function RecordItem({ record }: { record: FinancialWithActivity }) {
-    const isIncome = record.recordCategory === 'income';
+function RecordItem({ record }: { record: RecordWithDetails }) {
+    const isIncome = record.type.category === 'income';
 
     return (
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
@@ -332,11 +332,11 @@ function RecordItem({ record }: { record: FinancialWithActivity }) {
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                             }`}>
-                            {record.recordType}
+                            {record.type.name}
                         </span>
 
                         {/* 关联活动标识 */}
-                        {record.activityType && (
+                        {record.activity?.type.name && (
                             <span className="ml-2 text-xs text-gray-500 flex items-center">
                                 <LinkIcon className="w-3 h-3 mr-1" />
                                 关联活动
@@ -352,10 +352,10 @@ function RecordItem({ record }: { record: FinancialWithActivity }) {
                     )}
 
                     {/* 关联活动信息（可选显示） */}
-                    {record.activityType && record.plotName && (
+                    {record.activity && record.activity.plot.name && (
                         <div className="mt-2 flex items-center text-sm text-gray-500">
                             <div className="bg-gray-100 px-2 py-1 rounded-md">
-                                {record.plotName} · {record.activityType}
+                                {record.activity.plot.name} · {record.activity.type.name}
                             </div>
                         </div>
                     )}

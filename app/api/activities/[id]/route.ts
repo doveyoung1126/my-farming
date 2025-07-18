@@ -1,145 +1,193 @@
+// app/api/activities/[id]/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+
     try {
-        const { id } = await params;
         const activityId = parseInt(id, 10);
 
         if (isNaN(activityId)) {
-            return NextResponse.json({ message: '无效的活动ID' }, { status: 400 });
+            return NextResponse.json({ message: '无效的农事活动 ID' }, { status: 400 });
         }
 
         const body = await request.json();
         const {
             activityTypeId,
             date,
-            plotId,
+            // plotId, // 不允许修改活动所属的地块
             crop,
-            budget,
-            records // This will contain the updated list of records
+            records,
+            recordIdsToDelete,
         } = body;
 
-        // Basic validation
-        if (!activityTypeId || !date || !plotId) {
+        // 1. 基础验证
+        if (!activityTypeId || !date) {
             return NextResponse.json({ message: '缺少必要的活动信息' }, { status: 400 });
         }
 
-        // Start transaction
-        const updatedActivity = await prisma.$transaction(async (prisma) => {
-            // 1. Update the main activity
-            const activity = await prisma.activity.update({
+        // 2. 事务化处理
+        const transaction = await prisma.$transaction(async (tx) => {
+            // ��取原始活动及其周期信息
+            const originalActivity = await tx.activity.findUnique({
                 where: { id: activityId },
-                data: {
-                    activityTypeId: activityTypeId,
-                    date: new Date(date),
-                    plotId: plotId,
-                    crop: crop || null,
-                    budget: budget ? parseFloat(budget) : null,
-                },
-                include: {
-                    records: true // Include records to compare later
-                }
+                include: { cycle: true, type: true },
             });
 
-            // 2. Manage associated financial records
-            const existingRecordIds = activity.records.map(rec => rec.id);
-            const incomingRecordIds = records.map((rec: any) => rec.id).filter(Boolean); // Filter out temporary client-side IDs
-
-            // Records to delete (exist in DB but not in incoming payload)
-            const recordsToDelete = existingRecordIds.filter(
-                (existingId) => !incomingRecordIds.includes(existingId)
-            );
-
-            // Records to create/update
-            const recordOperations = records.map((record: any) => {
-                if (record.id && existingRecordIds.includes(record.id)) {
-                    // Update existing record
-                    return prisma.record.update({
-                        where: { id: record.id },
-                        data: {
-                            amount: parseFloat(record.amount),
-                            recordTypeId: parseInt(record.recordTypeId),
-                            date: new Date(record.date),
-                            description: record.description || null,
-                        },
-                    });
-                } else {
-                    // Create new record
-                    return prisma.record.create({
-                        data: {
-                            amount: parseFloat(record.amount),
-                            recordTypeId: parseInt(record.recordTypeId),
-                            date: new Date(record.date),
-                            description: record.description || null,
-                            activityId: activity.id, // Link to the updated activity
-                        },
-                    });
-                }
-            });
-
-            // Execute delete operations
-            if (recordsToDelete.length > 0) {
-                await prisma.record.deleteMany({
-                    where: {
-                        id: {
-                            in: recordsToDelete,
-                        },
-                    },
-                });
+            if (!originalActivity) {
+                throw new Error('未找到要更新的农事活动');
+            }
+            if (originalActivity.activityTypeId !== parseInt(activityTypeId)) {
+                throw new Error('不允许修改农事活动的类型。如需更改，请删除后重建。');
             }
 
-            // Execute create/update operations
-            await Promise.all(recordOperations);
+            // 3. 更新活动本身
+            const updatedActivity = await tx.activity.update({
+                where: { id: activityId },
+                data: {
+                    date: new Date(date),
+                    crop: crop || null, // 允许更新快照
+                },
+            });
 
-            return activity; // Return the updated activity
+            // 4. 如果更新的是周期的关键活动，则同步更新周期
+            if (originalActivity.cycle) {
+                const cycle = originalActivity.cycle;
+                // 如果是开始活动
+                if (cycle.startActivityId === activityId) {
+                    if (cycle.endDate && new Date(date) > cycle.endDate) {
+                        throw new Error('周期的开始日期不能晚于结束日期。');
+                    }
+                    await tx.cycle.update({
+                        where: { id: cycle.id },
+                        data: { startDate: new Date(date), crop: crop || null },
+                    });
+                }
+                // 如果是结束活动
+                if (cycle.endActivityId === activityId) {
+                    if (new Date(date) < cycle.startDate) {
+                        throw new Error('周期的结束日期不能早于开始日期。');
+                    }
+                    await tx.cycle.update({
+                        where: { id: cycle.id },
+                        data: { endDate: new Date(date) },
+                    });
+                }
+            }
+
+            // 5. 处理财务记录 (创建、更新、删除)
+            if (records && Array.isArray(records)) {
+                const recordsToCreate = records.filter(r => !r.id);
+                const recordsToUpdate = records.filter(r => r.id);
+
+                if (recordIdsToDelete && recordIdsToDelete.length > 0) {
+                    await tx.record.deleteMany({
+                        where: { id: { in: recordIdsToDelete.map((id: string) => parseInt(id)) } },
+                    });
+                }
+
+                if (recordsToCreate.length > 0) {
+                    await tx.record.createMany({
+                        data: recordsToCreate.map((r: any) => ({
+                            ...r,
+                            activityId: updatedActivity.id,
+                        })),
+                    });
+                }
+
+                for (const r of recordsToUpdate) {
+                    await tx.record.update({
+                        where: { id: parseInt(r.id) },
+                        data: { ...r, id: undefined }, // id 不能被更新
+                    });
+                }
+            }
+
+            return updatedActivity;
         });
 
-        return NextResponse.json(updatedActivity, { status: 200 });
+        return NextResponse.json(transaction);
 
     } catch (error) {
-        console.error('更新农事活动失败:', error);
+        console.error(`更新农事活动 ${id} 失败:`, error);
         const errorMessage = error instanceof Error ? error.message : '发生未知错误';
-        return NextResponse.json({ message: '更新农事活动失败', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ message: `更新失败: ${errorMessage}` }, { status: 500 });
     }
 }
 
 export async function DELETE(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const { id } = await params
         const activityId = parseInt(id, 10);
         if (isNaN(activityId)) {
-            return NextResponse.json({ message: '无效的农事活动ID' }, { status: 400 });
+            return NextResponse.json({ message: '无效的农事活动 ID' }, { status: 400 });
         }
 
-        // 使用事务确保数据一致性
-        const result = await prisma.$transaction(async (prisma) => {
-            // 1. 删除所有关联的财务记录
-            await prisma.record.deleteMany({
-                where: { activityId: activityId },
-            });
-
-            // 2. 删除农事活动本身
-            const deletedActivity = await prisma.activity.delete({
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. 获取活动及其周期的详细信息
+            const activityToDelete = await tx.activity.findUnique({
                 where: { id: activityId },
+                include: {
+                    cycle: {
+                        include: {
+                            _count: {
+                                select: { activities: true }
+                            }
+                        }
+                    }
+                }
             });
 
-            return deletedActivity;
+            if (!activityToDelete) {
+                throw new Error('要删除的农事活动不存在。');
+            }
+
+            const cycle = activityToDelete.cycle;
+
+            // 2. 应用我们讨论的业务逻辑
+            if (cycle) {
+                // 规则 1: 禁止删除已完结周期内的任何活动
+                if (cycle.status === 'completed') {
+                    throw new Error('无法删除已完结生产周期内的农事活动。');
+                }
+
+                // 规则 2: 处理“开始”活动
+                if (cycle.startActivityId === activityId) {
+                    if (cycle._count.activities > 1) {
+                        throw new Error('无法删除开始活动，请先删除周期内的其他普通活动。');
+                    }
+                    // 如果是唯一活动，则删除活动和周期本身
+                    await tx.record.deleteMany({ where: { activityId: activityId } });
+                    await tx.activity.delete({ where: { id: activityId } });
+                    await tx.cycle.delete({ where: { id: cycle.id } });
+                    return { message: '农事活动及空的生产周期已成功删除。' };
+                }
+                // 规则 3: 禁止删除“结束”活动 (虽然周期未完结时理论上不应该有结束活动，但作为安全校验)
+                if (cycle.endActivityId === activityId) {
+                    throw new Error('无法删除一个生产周期的结束活动。');
+                }
+            }
+
+            // 规则 4: 删除普通活动 (或不属于任何周期的活动)
+            await tx.record.deleteMany({ where: { activityId: activityId } });
+            const deletedActivity = await tx.activity.delete({ where: { id: activityId } });
+
+            return { message: '农事活动已成功删除。', data: deletedActivity };
         });
 
-        return NextResponse.json({ message: `农事活动已成功删除` }, { status: 200 });
+        return NextResponse.json(result, { status: 200 });
 
     } catch (error: any) {
-        console.error('[API_ACTIVITIES_DELETE]', error);
-
-        // 处理 Prisma 特定的错误，例如记录未找到
+        console.error(`[API_ACTIVITIES_DELETE]`, error);
+        // P2025 是 Prisma "not found" 错误
         if (error.code === 'P2025') {
             return NextResponse.json({ message: '要删除的农事活动不存在' }, { status: 404 });
         }
-
-        return NextResponse.json({ message: '服务器内部错误' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : '服务器内部错误';
+        return NextResponse.json({ message: `删除失败: ${errorMessage}` }, { status: 500 });
     }
 }

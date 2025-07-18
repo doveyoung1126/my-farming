@@ -1,5 +1,4 @@
-// app/reports/page.tsx
-import { getAllActiviesDetails, getPlots, getRecordCategoryTypes, getRecordsWithActivity, getActivityTypes } from '@/lib/data';
+import { getAllActivities, getPlots, getRecordCategoryTypes, getRecordsWithDetails, getActivityTypes } from '@/lib/data';
 import { ReportsClient } from '@/components/features/reports/ReportsClient';
 
 /**
@@ -14,8 +13,8 @@ export default async function ReportsPage() {
     // 1. 并行获取所有必需的数据
     const [plots, activities, records, recordCategoryTypes, activityTypes] = await Promise.all([
         getPlots(true), // 传入 true 来获取所有地块
-        getAllActiviesDetails(),
-        getRecordsWithActivity(), // 直接从数据库获取所有财务记录
+        getAllActivities(),
+        getRecordsWithDetails(), // 直接从数据库获取所有财务记录
         getRecordCategoryTypes(), // 获取财务记录类型
         getActivityTypes() // Fetch activity types
     ]);

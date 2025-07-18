@@ -1,7 +1,7 @@
 // components/reports/ActivityLogView.tsx
 'use client';
 
-import { ActivityWithFinancials } from "@/lib/types";
+import { ActivityInCycle } from "@/lib/types";
 import ActivitiesList from '@/components/features/reports/ActivitiesList';
 
 /**
@@ -13,7 +13,7 @@ import ActivitiesList from '@/components/features/reports/ActivitiesList';
  */
 import { Pencil } from 'lucide-react'; // Import Pencil icon
 
-export function ActivityLogView({ activities }: { activities: ActivityWithFinancials[]; }) {
+export function ActivityLogView({ activities }: { activities: ActivityInCycle[]; }) {
     return (
         <div>
             {activities.length > 0 ? (

@@ -1,11 +1,11 @@
 // components/plots/PlotsClient.tsx
 'use client';
 
-import { PrismaPlots } from "@/lib/types";
+import { Plot } from "@/lib/types";
 import Link from "next/link";
 import { LandPlot, Square, Archive } from 'lucide-react';
 
-export function PlotsClient({ plots, showArchived }: { plots: PrismaPlots[], showArchived: boolean }) {
+export function PlotsClient({ plots, showArchived }: { plots: Plot[], showArchived: boolean }) {
 
     if (plots.length === 0) {
         return (
