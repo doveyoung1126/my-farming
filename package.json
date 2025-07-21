@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "prisma": {
-    "seed": "tsx prisma/seedTestData.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
+    "db:seed-dev": "tsx prisma/seedTestData.ts",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

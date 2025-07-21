@@ -1,127 +1,164 @@
 // prisma/seedTestData.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, CycleMarker, RecordCategory } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+// --- HELPERS ---
+function getRandomElement<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getRandomDate(start: Date, end: Date): Date {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+function getRandomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function subDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() - days);
+  return result;
+}
+
+// --- DATA POOLS ---
+const PLOT_NAMES = ['一号大棚', '西边那块地', '南坡试验田', '育苗基地', '果园南区', '水稻试验田', '蔬菜区A'];
+const CROP_NAMES = ['大白菜', '番茄', '黄瓜', '草莓', '辣椒', '蓝莓', '西瓜', '生菜'];
 
 async function main() {
   console.log('Start seeding test data...');
 
-  // 清理旧数据
+  // 1. CLEANUP: Clear all previous data
+  console.log('Cleaning old data...');
   await prisma.record.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.cycle.deleteMany();
   await prisma.plot.deleteMany();
   await prisma.activityType.deleteMany();
   await prisma.recordCategoryType.deleteMany();
-  console.log('Old data cleaned.');
 
-  // 创建基础数据
-  const plot1 = await prisma.plot.create({ data: { name: '一号大棚', area: 1.2 } });
-  const plot2 = await prisma.plot.create({ data: { name: '二号大棚', area: 1.5, isArchived: true } });
-  const plot3 = await prisma.plot.create({ data: { name: '南边那块地', area: 3.0 } });
-  console.log('Plots created.');
+  // 2. SEED CORE TYPES: Create the essential types first
+  console.log('Seeding core data types...');
+  const activityTypesData = [
+    { name: '播种', cycleMarker: CycleMarker.START },
+    { name: '采收', cycleMarker: CycleMarker.END },
+    { name: '施肥', cycleMarker: null },
+    { name: '浇水', cycleMarker: null },
+    { name: '除草', cycleMarker: null },
+    { name: '喷药', cycleMarker: null },
+    { name: '整地', cycleMarker: null },
+  ];
+  const recordCategoriesData = [
+    { name: '种子', category: RecordCategory.expense },
+    { name: '肥料', category: RecordCategory.expense },
+    { name: '农药', category: RecordCategory.expense },
+    { name: '人工', category: RecordCategory.expense },
+    { name: '机械', category: RecordCategory.expense },
+    { name: '其他支出', category: RecordCategory.expense },
+    { name: '销售', category: RecordCategory.income },
+    { name: '补贴', category: RecordCategory.income },
+    { name: '其他收入', category: RecordCategory.income },
+  ];
 
-  const sow = await prisma.activityType.create({ data: { name: '播种', cycleMarker: 'START' } });
-  const harvest = await prisma.activityType.create({ data: { name: '采收', cycleMarker: 'END' } });
-  const fertilize = await prisma.activityType.create({ data: { name: '施肥' } });
-  const water = await prisma.activityType.create({ data: { name: '浇水' } });
-  const weed = await prisma.activityType.create({ data: { name: '除草' } });
-  console.log('Activity types created.');
+  await prisma.activityType.createMany({ data: activityTypesData });
+  await prisma.recordCategoryType.createMany({ data: recordCategoriesData });
 
-  const seedCost = await prisma.recordCategoryType.create({ data: { name: '种子', category: 'expense' } });
-  const fertilizerCost = await prisma.recordCategoryType.create({ data: { name: '肥料', category: 'expense' } });
-  const laborCost = await prisma.recordCategoryType.create({ data: { name: '人工', category: 'expense' } });
-  const sales = await prisma.recordCategoryType.create({ data: { name: '销售', category: 'income' } });
-  console.log('Record category types created.');
-
-  // --- 模拟周期 1: 地块1上的一个完整白菜周期 ---
-  console.log('Seeding Cycle 1: Completed Cabbage Cycle on Plot 1...');
-  const cycle1_start_date = new Date('2024-03-01T10:00:00Z');
-  const cycle1_end_date = new Date('2024-05-15T14:00:00Z');
-
-  const cycle1 = await prisma.cycle.create({
-    data: {
-      plotId: plot1.id,
-      crop: '大白菜',
-      budget: 2000,
-      startDate: cycle1_start_date,
-      endDate: cycle1_end_date,
-      status: 'completed',
-    },
-  });
-
-  const c1_a1 = await createActivity(plot1.id, sow.id, cycle1.id, '大白菜', cycle1_start_date, [{ typeId: seedCost.id, amount: -500, desc: '购买白菜种子' }]);
-  const c1_a2 = await createActivity(plot1.id, fertilize.id, cycle1.id, '大白菜', new Date('2024-03-20T09:00:00Z'), [{ typeId: fertilizerCost.id, amount: -300, desc: '基肥' }]);
-  const c1_a3 = await createActivity(plot1.id, water.id, cycle1.id, '大白菜', new Date('2024-04-10T11:00:00Z'));
-  const c1_a4 = await createActivity(plot1.id, harvest.id, cycle1.id, '大白菜', cycle1_end_date, [{ typeId: sales.id, amount: 4500, desc: '售出500kg' }, { typeId: laborCost.id, amount: -800, desc: '采收人工费' }]);
-
-  await prisma.cycle.update({ where: { id: cycle1.id }, data: { startActivityId: c1_a1.id, endActivityId: c1_a4.id } });
-  await prisma.plot.update({ where: { id: plot1.id }, data: { crop: null } }); // 周期结束，地块作物清空
-  console.log('Cycle 1 seeded.');
-
-
-  // --- 模拟周期 2: 地块1上的一个正在进行中的番茄周期 ---
-  console.log('Seeding Cycle 2: Ongoing Tomato Cycle on Plot 1...');
-  const cycle2_start_date = new Date('2024-06-01T09:00:00Z');
-
-  const cycle2 = await prisma.cycle.create({
-    data: {
-      plotId: plot1.id,
-      crop: '番茄',
-      budget: 3000,
-      startDate: cycle2_start_date,
-      status: 'ongoing',
-    },
-  });
-
-  const c2_a1 = await createActivity(plot1.id, sow.id, cycle2.id, '番茄', cycle2_start_date, [{ typeId: seedCost.id, amount: -800, desc: '购买番茄苗' }]);
-  const c2_a2 = await createActivity(plot1.id, weed.id, cycle2.id, '番茄', new Date('2024-06-20T15:00:00Z'), [{ typeId: laborCost.id, amount: -400, desc: '除草人工' }]);
-
-  await prisma.cycle.update({ where: { id: cycle2.id }, data: { startActivityId: c2_a1.id } });
-  await prisma.plot.update({ where: { id: plot1.id }, data: { crop: '番茄' } }); // 周期开始，更新地块作物
-  console.log('Cycle 2 seeded.');
-
-
-  // --- 模拟周期 3: 地块3上的一个被中止的黄瓜周期 ---
-  console.log('Seeding Cycle 3: Aborted Cucumber Cycle on Plot 3...');
-  const cycle3_start_date = new Date('2024-04-01T10:00:00Z');
-  const cycle3_abort_date = new Date('2024-05-05T11:00:00Z'); // 下一个周��的开始日期
-
-  const cycle3 = await prisma.cycle.create({
-    data: {
-      plotId: plot3.id,
-      crop: '黄瓜',
-      budget: 1500,
-      startDate: cycle3_start_date,
-      endDate: cycle3_abort_date,
-      status: 'aborted',
-    },
-  });
-
-  const c3_a1 = await createActivity(plot3.id, sow.id, cycle3.id, '黄瓜', cycle3_start_date, [{ typeId: seedCost.id, amount: -400, desc: '购买黄瓜种子' }]);
-  const c3_a2 = await createActivity(plot3.id, water.id, cycle3.id, '黄瓜', new Date('2024-04-15T14:00:00Z'));
+  const activityTypes = await prisma.activityType.findMany();
+  const recordCategoryTypes = await prisma.recordCategoryType.findMany();
   
-  // 模拟下一个周期的开始活动，它导致了前一个周期的中止
-  const cycle4_start_activity = await createActivity(plot3.id, sow.id, null, '辣椒', cycle3_abort_date); // 这个活动暂时不属于任何周期
+  const sowType = activityTypes.find(t => t.name === '播种')!;
+  const harvestType = activityTypes.find(t => t.name === '采收')!;
+  const otherActivityTypes = activityTypes.filter(t => t.cycleMarker === null);
+  
+  const expenseCategories = recordCategoryTypes.filter(t => t.category === 'expense');
+  const incomeCategories = recordCategoryTypes.filter(t => t.category === 'income');
 
-  await prisma.cycle.update({ where: { id: cycle3.id }, data: { startActivityId: c3_a1.id } });
-  // 注意：中止的周期可能不会清空地块作物，因为新的作物立即就种下了
-  console.log('Cycle 3 seeded.');
+  // 3. SEED PLOTS: Create a variety of plots
+  console.log('Seeding plots...');
+  const plots = [];
+  for (let i = 0; i < 5; i++) {
+    const plot = await prisma.plot.create({
+      data: {
+        name: `${getRandomElement(PLOT_NAMES)} #${i + 1}`,
+        area: getRandomInt(10, 50) / 10, // 1.0 to 5.0 acres
+        isArchived: Math.random() > 0.8, // 20% chance of being archived
+      },
+    });
+    plots.push(plot);
+  }
 
+  // 4. SEED CYCLES & ACTIVITIES: For each plot, create realistic cycles
+  console.log('Seeding cycles and activities...');
+  for (const plot of plots) {
+    // Create 1-2 completed cycles
+    for (let i = 0; i < getRandomInt(1, 2); i++) {
+      const crop = getRandomElement(CROP_NAMES);
+      const cycleDuration = getRandomInt(60, 120);
+      const cycleEndDate = subDays(new Date(), (i * 150) + 90);
+      const cycleStartDate = subDays(cycleEndDate, cycleDuration);
 
-  console.log('Test data seeding finished.');
+      const cycle = await prisma.cycle.create({
+        data: {
+          plotId: plot.id,
+          crop,
+          budget: getRandomInt(20, 50) * 100,
+          startDate: cycleStartDate,
+          endDate: cycleEndDate,
+          status: 'completed',
+        },
+      });
+
+      // Add activities for the completed cycle
+      const startActivity = await createActivity(plot.id, sowType.id, cycle.id, crop, cycleStartDate, [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(200, 500) }]);
+      const endActivity = await createActivity(plot.id, harvestType.id, cycle.id, crop, cycleEndDate, [{ typeId: getRandomElement(incomeCategories).id, amount: getRandomInt(3000, 8000) }]);
+      
+      for (let j = 0; j < getRandomInt(5, 15); j++) {
+        await createActivity(plot.id, getRandomElement(otherActivityTypes).id, cycle.id, crop, getRandomDate(cycleStartDate, cycleEndDate), [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(50, 200) }]);
+      }
+      
+      await prisma.cycle.update({ where: { id: cycle.id }, data: { startActivityId: startActivity.id, endActivityId: endActivity.id } });
+    }
+
+    // Create 1 ongoing cycle for non-archived plots
+    if (!plot.isArchived) {
+      const crop = getRandomElement(CROP_NAMES);
+      const cycleStartDate = subDays(new Date(), getRandomInt(15, 45));
+      
+      const cycle = await prisma.cycle.create({
+        data: {
+          plotId: plot.id,
+          crop,
+          budget: getRandomInt(20, 50) * 100,
+          startDate: cycleStartDate,
+          status: 'ongoing',
+        },
+      });
+      
+      await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
+
+      const startActivity = await createActivity(plot.id, sowType.id, cycle.id, crop, cycleStartDate, [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(200, 500) }]);
+      await prisma.cycle.update({ where: { id: cycle.id }, data: { startActivityId: startActivity.id } });
+
+      for (let j = 0; j < getRandomInt(3, 8); j++) {
+        await createActivity(plot.id, getRandomElement(otherActivityTypes).id, cycle.id, crop, getRandomDate(cycleStartDate, new Date()), [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(50, 200) }]);
+      }
+    }
+  }
+
+  console.log('Test data seeding finished successfully.');
 }
 
-// 辅助函数，用于创建活动及其关联的财务记录
+// --- DB HELPER FUNCTION ---
 async function createActivity(
   plotId: number,
   typeId: number,
-  cycleId: number | null,
+  cycleId: number,
   crop: string,
   date: Date,
   records: { typeId: number; amount: number; desc?: string }[] = []
 ) {
-  const activity = await prisma.activity.create({
+  return prisma.activity.create({
     data: {
       plotId,
       activityTypeId: typeId,
@@ -132,18 +169,17 @@ async function createActivity(
         create: records.map(r => ({
           recordTypeId: r.typeId,
           amount: r.amount,
-          description: r.desc,
-          date: date, // 财务记录日期默认为活动日期
+          description: r.desc || '',
+          date: date,
         })),
       },
     },
   });
-  return activity;
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('An error occurred during seeding:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -169,7 +169,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                     </div>
                     {/* ... 财务摘要卡片 ... */}
                     {activeView === 'financial' && (
-                        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-b-lg overflow-hidden">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-200 rounded-b-lg overflow-hidden">
                             <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总收入</p><p className="text-base font-bold text-green-600">¥{summary.income.toLocaleString()}</p></div>
                             <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">总支出</p><p className="text-base font-bold text-red-600">¥{Math.abs(summary.expense).toLocaleString()}</p></div>
                             <div className="bg-white p-3 text-center"><p className="text-xs text-slate-500 mb-1">净利润</p><p className={`text-base font-bold ${(summary.income + summary.expense) >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>¥{(summary.income + summary.expense).toLocaleString()}</p></div>

@@ -16,10 +16,11 @@ export async function createPlotAction(previousState: any, formData: FormData) {
   const payload = {
     name: formData.get('name') as string,
     area: parseFloat(formData.get('area') as string),
+    crop: formData.get('crop') as string,
   };
 
-  if (!payload.name || isNaN(payload.area)) {
-    return { success: false, error: '请提供地块名称和有效的面积。' };
+  if (!payload.name || isNaN(payload.area) || payload.area <= 0) {
+    return { success: false, error: '请提供地块名称和有效的正数面积。' };
   }
 
   try {
