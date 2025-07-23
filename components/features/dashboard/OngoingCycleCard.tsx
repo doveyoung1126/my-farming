@@ -47,7 +47,7 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                             </span>
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-2.5">
-                            <div 
+                            <div
                                 className={`h-2.5 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
                                 style={{ width: `${Math.min(100, budgetProgress)}%` }}
                             ></div>
@@ -62,19 +62,19 @@ export const OngoingCycleCard = ({ cycle }: { cycle: ActivityCycle }) => {
                         <p className="text-xs text-slate-500 mt-1">未设置预算</p>
                     </div>
                 )}
-                
+
                 <div className="text-xs text-slate-400 pt-2 border-t border-slate-100">
                     {/* activities 已按日期升序排序 */}
                     最近操作: {cycle.activities[cycle.activities.length - 1]?.type.name || '无'}
                 </div>
             </div>
 
-            {/* Card Footer */}
-            <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
+            {/* Card Footer Comment*/}
+            {/* <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
                 <div className="w-full text-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
                     + 添加记录
                 </div>
-            </div>
+            </div> */}
         </Link>
     );
 };

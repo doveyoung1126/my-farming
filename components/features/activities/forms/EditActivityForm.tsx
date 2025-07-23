@@ -146,7 +146,7 @@ export function EditActivityForm({
 
     return (
         // 4. form 的 onSubmit 指向新的 handleSubmit
-        <form onSubmit={handleSubmit} className="space-y-4 p-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 pb-16">
             {error && <div className="text-red-500 bg-red-50 p-3 rounded-md">{error}</div>}
 
             {/* 活动基本信息 */}

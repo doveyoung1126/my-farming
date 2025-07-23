@@ -76,7 +76,7 @@ export function EditFinancialRecordForm({
     const isoDate = new Date(`${localDatePart}T${localTimePart}`).toISOString();
 
     return (
-        <form ref={formRef} action={formAction} className="space-y-4 p-4">
+        <form ref={formRef} action={formAction} className="space-y-4 p-4 pb-16">
             {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
 
             <input type="hidden" name="recordId" value={record.id} />
