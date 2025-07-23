@@ -244,3 +244,46 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: '更新财务记录失败: ' + error.message };
   }
 }
+
+// ------------------------
+// FEEDBACK ACTIONS
+// ------------------------
+
+export async function submitFeedbackAction(previousState: any, formData: FormData) {
+  const content = formData.get('feedback') as string;
+  if (!content || content.trim().length === 0) {
+    return { success: false, error: '反馈内容不能为空。' };
+  }
+
+  const barkUrl = process.env.BARK_URL;
+  if (!barkUrl) {
+    console.error('BARK_URL is not set in environment variables.');
+    return { success: false, error: '无法发送反馈，服务器配置不正确。' };
+  }
+
+  try {
+    // We are not using the API routes here, just directly calling Bark
+    const response = await fetch(barkUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '农场应用新反馈',
+        body: content,
+        sound: 'notifysound', // You can change the sound
+      }),
+    });
+
+    if (!response.ok) {
+      // Bark API might return error details in the body
+      const errorData = await response.json();
+      console.error('Failed to send feedback to Bark:', errorData);
+      throw new Error(errorData.message || '发送通知失败');
+    }
+
+    return { success: true, error: null };
+
+  } catch (error: any) {
+    console.error('Error in submitFeedbackAction:', error);
+    return { success: false, error: '发送反馈时遇到网络问题。' };
+  }
+}
