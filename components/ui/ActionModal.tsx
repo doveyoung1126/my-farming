@@ -76,7 +76,7 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
         >
             <div
                 className={`
-                    bg-white rounded-t-xl w-full max-w-md p-4 shadow-lg
+                    bg-white rounded-t-xl w-full max-w-md p-4 pb-16 shadow-lg
                     transform transition-transform duration-300 ease-out
                     ${isVisible ? 'translate-y-0' : 'translate-y-full'}
                 `}
