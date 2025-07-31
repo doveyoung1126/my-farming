@@ -1,4 +1,6 @@
 // app/newdashboard/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { getPlots, getAllCycles, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
 import { ActivityCycle, Plot, ActivityType, RecordCategoryType } from '@/lib/types';
 import { OngoingCycleCard } from '@/components/features/dashboard/OngoingCycleCard';
@@ -26,7 +28,7 @@ export default async function NewDashboardPage() {
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-slate-800">我的农场</h1>
-                    <DashboardActions 
+                    <DashboardActions
                         activityTypes={activityTypes}
                         plots={plots}
                         recordCategoryTypes={recordCategoryTypes}
