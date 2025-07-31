@@ -56,7 +56,7 @@ export function EditPlotForm({ plot, onClose }: EditPlotFormProps) {
 
     return (
         // 5. 将 onSubmit 改为 action
-        <form ref={formRef} action={formAction} className="space-y-4 p-4">
+        <form ref={formRef} action={formAction} className="space-y-4 p-4 pb-16">
             {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
 
             {/* 6. 添加隐藏字段来传递 ID */}

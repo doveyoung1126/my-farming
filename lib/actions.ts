@@ -71,6 +71,7 @@ export async function updatePlotAction(formData: FormData) {
 
     revalidatePath('/plots');
     revalidatePath(`/plots/${plotId}`);
+    revalidatePath('/newdashboard')
     return { success: true };
   } catch (error: any) {
     if (error.code === 'P2002') {
