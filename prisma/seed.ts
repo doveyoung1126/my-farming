@@ -55,6 +55,23 @@ async function main() {
   }
   console.log('Record category types seeded.');
 
+  // Check if any plots exist before seeding a default one.
+  console.log('Checking for existing plots...');
+  const plotCount = await prisma.plot.count();
+
+  if (plotCount === 0) {
+    console.log('No plots found. Seeding a default plot...');
+    await prisma.plot.create({
+      data: {
+        name: '默认地块',
+        area: 40,
+      },
+    });
+    console.log('Default plot created.');
+  } else {
+    console.log('Plots already exist, skipping default plot creation.');
+  }
+
   console.log('Production seeding finished.');
 }
 
