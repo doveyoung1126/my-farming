@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import BottomNav from '@/components/layout/BottomNav';
 import { GlobalActions } from '@/components/layout/GlobalActions';
 import { getPlots, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
+import { GlobalActions } from '@/components/layout/GlobalActions';
+import { getPlots, getActivityTypes, getRecordCategoryTypes } from '@/lib/data';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,30 +23,36 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  export default async function RootLayout({
+    children,
+  }: Readonly<{
+    children: React.ReactNode;
+  }>) {
 
-  const [plots, activityTypes, recordCategoryTypes] = await Promise.all([
-    getPlots(), // Fetch all plots, including archived ones
-    getActivityTypes(),
-    getRecordCategoryTypes(),
-  ]);
+    const [plots, activityTypes, recordCategoryTypes] = await Promise.all([
+      getPlots(), // Fetch inuse plots
+      getActivityTypes(),
+      getRecordCategoryTypes(),
+    ]);
 
-  return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col`}
-      >
-        {children}
-        <BottomNav />
-        <GlobalActions
-          plots={plots}
-          activityTypes={activityTypes}
-          recordCategoryTypes={recordCategoryTypes}
-        />
-      </body>
-    </html>
-  );
-}
+    return (
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col`}
+        >
+          {children}
+          <BottomNav />
+          <GlobalActions
+            plots={plots}
+            activityTypes={activityTypes}
+            recordCategoryTypes={recordCategoryTypes}
+          />
+          <GlobalActions
+            plots={plots}
+            activityTypes={activityTypes}
+            recordCategoryTypes={recordCategoryTypes}
+          />
+        </body>
+      </html>
+    );
+  }
