@@ -28,11 +28,6 @@ export default async function NewDashboardPage() {
             <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-slate-800">我的农场</h1>
-                    <DashboardActions
-                        activityTypes={activityTypes}
-                        plots={plots}
-                        recordCategoryTypes={recordCategoryTypes}
-                    />
                 </div>
             </header>
 

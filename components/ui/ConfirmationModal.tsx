@@ -47,7 +47,7 @@ export function ConfirmationModal({
     return (
         <div
             className={`
-                fixed inset-0 z-50 flex items-center justify-center
+                fixed inset-0 z-[70] flex items-center justify-center
                 transition-opacity duration-300 ease-out
                 ${isVisible ? 'opacity-100 bg-gray-900/75' : 'opacity-0 pointer-events-none'}
             `}

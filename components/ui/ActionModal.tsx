@@ -14,12 +14,11 @@ interface ActionModalProps {
     activityTypes: ActivityType[];
     plots: Plot[];
     recordCategoryTypes: RecordCategoryType[];
-    routerRefresh: () => void; // 新增 prop
 }
 
 type CurrentForm = 'select' | 'addActivity' | 'addFinancial' | 'addPlot';
 
-export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCategoryTypes, routerRefresh }: ActionModalProps) {
+export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCategoryTypes }: ActionModalProps) {
     const [shouldRender, setShouldRender] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [currentForm, setCurrentForm] = useState<CurrentForm>('select');
@@ -45,7 +44,6 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
 
     const handleFormSuccess = () => {
         onClose(); // 表单提交成功后关闭模态框
-        routerRefresh(); // 调用刷新函数
     };
 
     const handleFormCancel = () => {
