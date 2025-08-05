@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
     return {
         name: '我的农场',
+        orientation: 'portrait',
         short_name: 'MyFarm',
         description: 'Your Farming Tool',
         start_url: '/',

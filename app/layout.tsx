@@ -22,9 +22,13 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.png', type: 'image/png', sizes: '96x96' },
-      { url: '/favicon.ico', type: 'image/ico' }
+      { url: '/favicon.ico', type: 'image/x-icon' }
     ],
     apple: '/apple-icon.png'
+  },
+  appleWebApp: {
+    title: 'MyFarm',
+    statusBarStyle: "black-translucent"
   }
 };
 
