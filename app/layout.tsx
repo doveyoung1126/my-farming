@@ -18,6 +18,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "我的农场",
   description: "一个现代化的农场管理工具，用于追踪生产周期、农事活动和财务状况。",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.png', type: 'image/png', sizes: '96x96' },
+      { url: '/favicon.ico', type: 'image/ico' }
+    ],
+    apple: '/apple-icon.png'
+  }
 };
 
 export default async function RootLayout({
