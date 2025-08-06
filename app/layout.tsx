@@ -56,11 +56,6 @@ export default async function RootLayout({
           activityTypes={activityTypes}
           recordCategoryTypes={recordCategoryTypes}
         />
-        <GlobalActions
-          plots={plots}
-          activityTypes={activityTypes}
-          recordCategoryTypes={recordCategoryTypes}
-        />
       </body>
     </html>
   );
