@@ -1,4 +1,6 @@
 // lib/data.ts
+'use server'
+
 import prisma from './db';
 import {
   CycleWithDetails,
@@ -237,5 +239,22 @@ export const getRecordCategoryTypes = async (): Promise<RecordCategoryType[]> =>
   } catch (error) {
     console.error('获取财务记录类型失败:', error);
     throw new Error('无法获取财务记录类型');
+  }
+};
+
+export const getActivityById = async (id: number) => {
+  try {
+    return await prisma.activity.findUnique({
+      where: { id },
+      include: {
+        type: true,
+        plot: true,
+        cycle: true,
+        records: { include: { type: true } },
+      },
+    });
+  } catch (error) {
+    console.error(`获取活动详情失败 (ID: ${id}):`, error);
+    throw new Error('无法获取活动详情');
   }
 };

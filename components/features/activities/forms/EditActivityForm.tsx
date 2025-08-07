@@ -1,19 +1,15 @@
-// components/features/activities/forms/EditActivityForm.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ActivityType, Plot, RecordCategoryType, ActivityInCycle } from '@/lib/types';
-import { Plus, Minus, Loader2 } from 'lucide-react';
-import { updateActivityAction } from '@/lib/actions'; // 1. 导入 Server Action
+import useSWR from 'swr';
+import { ActivityType, Plot, RecordCategoryType, ActivityInCycle, Cycle } from '@/lib/types';
+import { Plus, Minus, Loader2, AlertTriangle } from 'lucide-react';
+import { updateActivityAction } from '@/lib/actions';
 
-// --- Props 接口 ---
+// --- 1. Props 接口只接收 ID 和回调 ---
 interface EditActivityFormProps {
-    activityTypes: ActivityType[];
-    plots: Plot[];
-    recordCategoryTypes: RecordCategoryType[];
-    initialActivity: ActivityInCycle;
-    cycleBudget?: number | null
-    onClose: () => void; // 2. 添加 onClose
+    activityId: number;
+    onClose: () => void;
 }
 
 interface FinancialRecordForm {
@@ -22,19 +18,61 @@ interface FinancialRecordForm {
     recordTypeId: string;
     description: string;
     date: string;
-    originalTime?: string; // 添加可选的原始时间字段
+    originalTime?: string;
 }
 
-export function EditActivityForm({
-    activityTypes,
-    plots,
-    recordCategoryTypes,
-    initialActivity,
-    onClose,
-    cycleBudget
-}: EditActivityFormProps) {
+// --- SWR 返回的数据类型 ---
+interface EditFormData {
+    activity: ActivityInCycle;
+    cycle: Cycle
+    plots: Plot[];
+    activityTypes: ActivityType[];
+    recordCategoryTypes: RecordCategoryType[];
+}
 
-    // --- 日期格式化辅助函数 ---
+export function EditActivityForm({ activityId, onClose }: EditActivityFormProps) {
+    // --- 2. 引入 SWR 获取数据，并将 isLoading 重命名避免冲突 ---
+    const { data, error, isLoading: isDataLoading } = useSWR<EditFormData>(`/api/activities/${activityId}/edit-data`);
+
+    // --- 3. 完整保留你原有的内部状态管理 ---
+    const [isLoading, setIsLoading] = useState(false); // 用于提交状态
+    const [formError, setFormError] = useState<string | null>(null);
+    const [activityTypeId, setActivityTypeId] = useState('');
+    const [date, setDate] = useState('');
+    const [originalTime, setOriginalTime] = useState('');
+    const [crop, setCrop] = useState('');
+    const [budget, setBudget] = useState('');
+    const [records, setRecords] = useState<FinancialRecordForm[]>([]);
+    const [showFinancials, setShowFinancials] = useState(false);
+    const [recordIdsToDelete, setRecordIdsToDelete] = useState<number[]>([]); // 假设需要这个来跟踪删除
+
+    // --- 4. 修改 useEffect，依赖 SWR 的 data 来初始化表单 ---
+    useEffect(() => {
+        if (data?.activity) {
+            const { activity, recordCategoryTypes: allRecordTypes } = data;
+            setActivityTypeId(activity.type.id.toString());
+            const initialDate = new Date(activity.date);
+            setDate(formatDateForInput(initialDate));
+            setOriginalTime(initialDate.toTimeString().split(' ')[0]);
+            setCrop(activity.crop || '');
+            setBudget(data.cycle?.budget?.toString() || '');
+            setShowFinancials(activity.records.length > 0);
+
+            if (activity.records.length > 0 && allRecordTypes.length > 0) {
+                const mappedRecords = activity.records.map(rec => ({
+                    id: rec.id,
+                    amount: rec.amount.toString(),
+                    recordTypeId: rec.type.id.toString(),
+                    description: rec.description || '',
+                    date: formatDateForInput(new Date(rec.date)),
+                    originalTime: new Date(rec.date).toTimeString().split(' ')[0],
+                }));
+                setRecords(mappedRecords);
+            }
+        }
+    }, [data]);
+
+    // --- 日期格式化辅助函数 (保留) ---
     function formatDateForInput(date: Date): string {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -42,53 +80,15 @@ export function EditActivityForm({
         return `${year}-${month}-${day}`;
     }
 
-    // --- 内部状态管理 (保留) ---
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [activityTypeId, setActivityTypeId] = useState('');
-    // 使用辅助函数安全地初始化日期状态
-    const [date, setDate] = useState(formatDateForInput(new Date(initialActivity.date)));
-    // 存储原始的时间部分，以便在提交时保留
-    const originalTime = new Date(initialActivity.date).toTimeString().split(' ')[0];
-    const plotId = initialActivity.plotId.toString()
-    const [crop, setCrop] = useState(initialActivity.crop || '');
-    const [budget, setBudget] = useState(cycleBudget?.toString() || '');
-    const [records, setRecords] = useState<FinancialRecordForm[]>([]);
-    const [showFinancials, setShowFinancials] = useState(initialActivity.records.length > 0);
-
-    // 定义 isoDate
-    const isoDate = new Date(`${date}T${originalTime}`).toISOString()
-
-    // --- 初始化表单 (保留) ---
-    useEffect(() => {
-        const type = activityTypes.find(t => t.id === initialActivity.type.id);
-        if (type) {
-            setActivityTypeId(type.id.toString());
-        }
-
-        if (initialActivity.records.length > 0 && recordCategoryTypes.length > 0) {
-            const mappedRecords = initialActivity.records.map(rec => {
-                const recordType = recordCategoryTypes.find(t => t.id === rec.type.id);
-                return {
-                    id: rec.id,
-                    amount: rec.amount.toString(),
-                    recordTypeId: recordType ? recordType.id.toString() : '',
-                    description: rec.description || '',
-                    date: formatDateForInput(new Date(rec.date)),
-                    originalTime: new Date(rec.date).toTimeString().split(' ')[0], // 保存原始时间
-                };
-            });
-            setRecords(mappedRecords);
-        }
-    }, [initialActivity, activityTypes, recordCategoryTypes]);
-
-    // 3. 修改 handleSubmit，调用 Server Action
+    // --- 5. 完整保留你原有的提交逻辑 ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        setError(null);
+        setFormError(null);
 
         const formData = new FormData(e.target as HTMLFormElement);
+        const isoDate = new Date(`${date}T${originalTime}`).toISOString();
+        formData.set('isoDate', isoDate);
 
         const recordsPayload = showFinancials ? records.map(rec => {
             const recordTime = rec.originalTime || originalTime;
@@ -102,39 +102,30 @@ export function EditActivityForm({
         }) : [];
 
         formData.set('records', JSON.stringify(recordsPayload));
+        formData.set('recordIdsToDelete', JSON.stringify(recordIdsToDelete));
 
-        const result = await updateActivityAction(initialActivity.id, formData);
+        const result = await updateActivityAction(activityId, formData);
 
         if (result?.error) {
-            setError(result.error);
+            setFormError(result.error);
             setIsLoading(false);
         } else {
-            setError(null);
+            setFormError(null);
             setIsLoading(false);
             onClose();
         }
     };
 
     // --- 其他辅助逻辑 (保留) ---
-    const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
-    const showBudgetField = selectedActivityType?.cycleMarker === 'START';
-
-    useEffect(() => {
-        if (plotId) {
-            const selectedPlot = plots.find(p => p.id === parseInt(plotId));
-            if (selectedPlot?.crop) {
-                setCrop(selectedPlot.crop);
-            } else {
-                setCrop('');
-            }
-        }
-    }, [plotId, plots]);
-
     const handleAddRecord = () => {
         setRecords([...records, { id: Date.now() + Math.random(), amount: '', recordTypeId: '', description: '', date: date }]);
     };
 
     const handleRemoveRecord = (index: number) => {
+        const recordToRemove = records[index];
+        if (recordToRemove.id) {
+            setRecordIdsToDelete([...recordIdsToDelete, recordToRemove.id]);
+        }
         setRecords(records.filter((_, i) => i !== index));
     };
 
@@ -144,25 +135,40 @@ export function EditActivityForm({
         setRecords(newRecords);
     };
 
-    return (
-        // 4. form 的 onSubmit 指向新的 handleSubmit
-        <form onSubmit={handleSubmit} className="space-y-4 p-4 pb-16">
-            {error && <div className="text-red-500 bg-red-50 p-3 rounded-md">{error}</div>}
+    // --- 6. 顶层错误处理 ---
+    if (error) {
+        return (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
+                <AlertTriangle className="w-6 h-6 mr-3" />
+                <div><p className="font-semibold">加载失败</p><p className="text-sm">无法加载编辑数据，请稍后重试。</p></div>
+            </div>
+        );
+    }
 
-            {/* 活动基本信息 */}
+    // --- 7. 安全解构数据 ---
+    const { activity, plots, activityTypes, recordCategoryTypes } = data || {};
+    const selectedActivityType = activityTypes?.find(type => type.id === parseInt(activityTypeId));
+    const showBudgetField = selectedActivityType?.cycleMarker === 'START';
+
+    // --- 8. 渐进式渲染表单 ---
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 pb-16">
+            {formError && <div className="text-red-500 bg-red-50 p-3 rounded-md">{formError}</div>}
+
             <div>
-                <label htmlFor="activityType" className="block text-sm font-medium text-gray-700">活动类型 <span className="text-red-500">*</span></label>
+                <label htmlFor="activityTypeId" className="block text-sm font-medium text-gray-700">活动类型 <span className="text-red-500">*</span></label>
                 <select
-                    id="activityType"
+                    id="activityTypeId"
                     name="activityTypeId"
                     value={activityTypeId}
                     onChange={(e) => setActivityTypeId(e.target.value)}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    disabled={isDataLoading}
                 >
-                    <option value="">请选择活动类型</option>
-                    {activityTypes.map(type => (
-                        <option key={type.id} value={type.id.toString()}>{type.name}</option>
+                    <option value="" disabled>{isDataLoading ? '加载中...' : '请选择活动类型'}</option>
+                    {activityTypes?.map(type => (
+                        <option key={type.id} value={type.id}>{type.name}</option>
                     ))}
                 </select>
             </div>
@@ -172,11 +178,11 @@ export function EditActivityForm({
                 <input
                     id="plot"
                     type="text"
-                    value={initialActivity.plot.name}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
+                    value={activity?.plot.name || '加载中...'}
+                    className="mt-1 block w-full bg-gray-100 pl-3 pr-10 py-2 text-base border-gray-300 sm:text-sm rounded-md"
                     readOnly
                 />
-                <input type="hidden" name="plotId" value={plotId} />
+                <input type="hidden" name="plotId" value={activity ? activity.plotId : ''} />
             </div>
 
             <div>
@@ -189,8 +195,8 @@ export function EditActivityForm({
                     onChange={(e) => setDate(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     required
+                    disabled={isDataLoading}
                 />
-                <input type='hidden' name='isoDate' value={isoDate} />
             </div>
 
             <div>
@@ -203,12 +209,13 @@ export function EditActivityForm({
                     onChange={(e) => setCrop(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     placeholder="例如：西红柿"
+                    disabled={isDataLoading}
                 />
             </div>
 
             {showBudgetField && (
                 <div>
-                    <label htmlFor="budget" className="block text-sm font-medium text-gray-700">预算 (可选，仅周期开始活动)</label>
+                    <label htmlFor="budget" className="block text-sm font-medium text-gray-700">预算 (可选)</label>
                     <input
                         type="number"
                         id="budget"
@@ -218,21 +225,22 @@ export function EditActivityForm({
                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                         placeholder="例如：1000.00"
                         step="0.01"
+                        disabled={isDataLoading}
                     />
                 </div>
             )}
 
-            {/* 关联财务记录 */}
             <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-medium text-gray-900">关联财务记录 (可选)</h3>
-                    <button
-                        type="button"
-                        onClick={() => setShowFinancials(!showFinancials)}
-                        className="text-sm text-emerald-600 hover:text-emerald-800"
-                    >
-                        {showFinancials ? '隐藏' : '显示'}
-                    </button>
+                <div className="flex items-center mb-3">
+                    <input
+                        type="checkbox"
+                        id="show-financials"
+                        checked={showFinancials}
+                        onChange={(e) => setShowFinancials(e.target.checked)}
+                        className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                        disabled={isDataLoading}
+                    />
+                    <label htmlFor="show-financials" className="ml-2 text-sm font-medium text-gray-900">关联财务记录</label>
                 </div>
 
                 {showFinancials && (
@@ -252,8 +260,6 @@ export function EditActivityForm({
                                         value={record.amount}
                                         onChange={(e) => handleRecordChange(index, 'amount', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                        placeholder="例如：-50.00 (支出) 或 100.00 (收入)"
-                                        step="0.01"
                                         required
                                     />
                                 </div>
@@ -265,10 +271,11 @@ export function EditActivityForm({
                                         onChange={(e) => handleRecordChange(index, 'recordTypeId', e.target.value)}
                                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                                         required
+                                        disabled={isDataLoading}
                                     >
                                         <option value="">请选择财务类型</option>
-                                        {recordCategoryTypes.map(type => (
-                                            <option key={type.id} value={type.id.toString()}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
+                                        {recordCategoryTypes?.map(type => (
+                                            <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                                         ))}
                                     </select>
                                 </div>
@@ -280,11 +287,10 @@ export function EditActivityForm({
                                         value={record.description}
                                         onChange={(e) => handleRecordChange(index, 'description', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                        placeholder="例如：购买种子"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor={`recordDate-${index}`} className="block text-xs font-medium text-gray-700">记录日期 (可选，默认同活动日期)</label>
+                                    <label htmlFor={`recordDate-${index}`} className="block text-xs font-medium text-gray-700">记录日期 (可选)</label>
                                     <input
                                         type="date"
                                         id={`recordDate-${index}`}
@@ -302,20 +308,19 @@ export function EditActivityForm({
                 )}
             </div>
 
-            {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
                 <button
                     type="button"
-                    onClick={onClose} // 5. 取消按钮调用 onClose
+                    onClick={onClose}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                    disabled={isLoading}
+                    disabled={isLoading} // 使用你自己的提交状态
                 >
                     取消
                 </button>
                 <button
                     type="submit"
                     className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
-                    disabled={isLoading}
+                    disabled={isLoading} // 使用你自己的提交状态
                 >
                     {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                     保存活动

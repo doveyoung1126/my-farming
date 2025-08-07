@@ -195,11 +195,7 @@ export function ReportsClient({ activities, records, plots, recordCategoryTypes,
                                 return (
                                     <FormModal isOpen={true} onClose={onClose} title="编辑农事活动">
                                         <EditActivityForm
-                                            initialActivity={activityToEdit}
-                                            cycleBudget={null} // 报表页面没有周期的概念，所以 budget 为 null
-                                            activityTypes={activityTypes}
-                                            plots={plots}
-                                            recordCategoryTypes={recordCategoryTypes}
+                                            activityId={activityToEdit.id}
                                             onClose={onClose}
                                         />
                                     </FormModal>

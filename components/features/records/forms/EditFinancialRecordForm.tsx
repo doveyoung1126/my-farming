@@ -19,9 +19,8 @@ export function EditFinancialRecordForm({
     onClose,
 }: EditFinancialRecordFormProps) {
 
-    const { pending } = useFormStatus();
-
     function SubmitButton() {
+        const { pending } = useFormStatus();
         return (
             <button
                 type="submit"
@@ -141,7 +140,6 @@ export function EditFinancialRecordForm({
                     type="button"
                     onClick={onClose}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                    disabled={pending}
                 >
                     取消
                 </button>
