@@ -1,16 +1,19 @@
-// components/features/records/forms/AddFinancialRecordForm.tsx
 'use client';
 
 import { useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import useSWR from 'swr';
 import { RecordCategoryType } from '@/lib/types';
 import { createFinancialRecordAction } from '@/lib/actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface AddFinancialRecordFormProps {
-    recordCategoryTypes: RecordCategoryType[];
     onSuccess: () => void;
     onCancel: () => void;
+}
+
+interface FormData {
+    recordCategoryTypes: RecordCategoryType[];
 }
 
 const initialState = {
@@ -23,7 +26,7 @@ function SubmitButton() {
   return (
     <button 
         type="submit" 
-        className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
+        className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:bg-emerald-400"
         disabled={pending}
     >
         {pending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -32,7 +35,8 @@ function SubmitButton() {
   );
 }
 
-export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCancel }: AddFinancialRecordFormProps) {
+export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialRecordFormProps) {
+    const { data, error, isLoading } = useSWR<FormData>('/api/records/form-data');
     const [state, formAction] = useActionState(createFinancialRecordAction, initialState);
 
     // --- 日期格式化辅助函数 ---
@@ -48,6 +52,33 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCance
             onSuccess();
         }
     }, [state.success, onSuccess]);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                <span className="ml-4 text-gray-600">正在加载表单数据...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
+                <AlertTriangle className="w-6 h-6 mr-3" />
+                <div>
+                    <p className="font-semibold">加载失败</p>
+                    <p className="text-sm">无法加载所需数据，请稍后重试。</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!data) {
+        return null; // Should not happen if not loading and no error
+    }
+
+    const { recordCategoryTypes } = data;
 
     return (
         <form action={formAction} className="space-y-4 p-4">

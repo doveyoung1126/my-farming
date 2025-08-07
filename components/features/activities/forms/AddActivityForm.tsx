@@ -1,16 +1,13 @@
-// components/features/activities/forms/AddActivityForm.tsx
 'use client';
 
 import { useState, useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import useSWR from 'swr';
 import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 import { createActivityAction } from '@/lib/actions';
-import { Loader2, Plus, Minus } from 'lucide-react';
+import { Loader2, Plus, Minus, AlertTriangle } from 'lucide-react';
 
 interface AddActivityFormProps {
-    activityTypes: ActivityType[];
-    plots: Plot[];
-    recordCategoryTypes: RecordCategoryType[];
     onSuccess: () => void;
     onCancel: () => void;
 }
@@ -20,6 +17,12 @@ interface FinancialRecordForm {
     recordTypeId: string;
     description: string;
     date: string;
+}
+
+interface FormData {
+    plots: Plot[];
+    activityTypes: ActivityType[];
+    recordCategoryTypes: RecordCategoryType[];
 }
 
 const initialState = {
@@ -32,7 +35,7 @@ function SubmitButton() {
     return (
         <button
             type="submit"
-            className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:bg-emerald-400"
             disabled={pending}
         >
             {pending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -41,7 +44,8 @@ function SubmitButton() {
     );
 }
 
-export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onSuccess, onCancel }: AddActivityFormProps) {
+export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
+    const { data, error, isLoading } = useSWR<FormData>('/api/activities/form-data');
     const [state, formAction] = useActionState(createActivityAction, initialState);
 
     // --- 日期格式化辅助函数 ---
@@ -59,7 +63,7 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
     const [records, setRecords] = useState<FinancialRecordForm[]>([]);
     const [showFinancials, setShowFinancials] = useState(false);
 
-    const selectedActivityType = activityTypes.find(type => type.id === parseInt(activityTypeId));
+    const selectedActivityType = data?.activityTypes.find(type => type.id === parseInt(activityTypeId));
     const showBudgetField = selectedActivityType?.cycleMarker === 'START';
 
     useEffect(() => {
@@ -69,13 +73,13 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
     }, [state.success, onSuccess]);
 
     useEffect(() => {
-        if (plotId) {
-            const selectedPlot = plots.find(p => p.id === parseInt(plotId));
+        if (plotId && data?.plots) {
+            const selectedPlot = data.plots.find(p => p.id === parseInt(plotId));
             setCrop(selectedPlot?.crop || '');
         } else {
             setCrop('');
         }
-    }, [plotId, plots]);
+    }, [plotId, data?.plots]);
 
     useEffect(() => {
         // When hiding the financial section, clear the records
@@ -101,6 +105,33 @@ export function AddActivityForm({ activityTypes, plots, recordCategoryTypes, onS
         newRecords[index] = { ...newRecords[index], [field]: value };
         setRecords(newRecords);
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                <span className="ml-4 text-gray-600">正在加载表单数据...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
+                <AlertTriangle className="w-6 h-6 mr-3" />
+                <div>
+                    <p className="font-semibold">加载失败</p>
+                    <p className="text-sm">无法加载所需数据，请稍后重试。</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!data) {
+        return null; // Should not happen if not loading and no error
+    }
+
+    const { plots, activityTypes, recordCategoryTypes } = data;
 
     return (
         <form action={formAction} className="space-y-4 p-4">

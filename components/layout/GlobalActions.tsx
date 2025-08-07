@@ -4,15 +4,8 @@
 import { useState } from 'react';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { ActionModal } from '@/components/ui/ActionModal';
-import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 
-interface GlobalActionsProps {
-  plots: Plot[];
-  activityTypes: ActivityType[];
-  recordCategoryTypes: RecordCategoryType[];
-}
-
-export function GlobalActions({ plots, activityTypes, recordCategoryTypes }: GlobalActionsProps) {
+export function GlobalActions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -24,9 +17,6 @@ export function GlobalActions({ plots, activityTypes, recordCategoryTypes }: Glo
       <ActionModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        plots={plots}
-        activityTypes={activityTypes}
-        recordCategoryTypes={recordCategoryTypes}
       />
     </>
   );
