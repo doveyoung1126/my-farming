@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // 为了数据准确性，需要声明动态页面，但是后期必须更改
+
 import { getAllActivities, getPlots, getRecordCategoryTypes, getRecordsWithDetails, getActivityTypes } from '@/lib/data';
 import { ReportsClient } from '@/components/features/reports/ReportsClient';
 
