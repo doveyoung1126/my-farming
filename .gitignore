@@ -45,4 +45,8 @@ farm.db
 *.db
 *.db-*
 
+# prisma
 /lib/generated/prisma
+
+# tmp
+*.tmp

@@ -17,22 +17,22 @@ interface FormData {
 }
 
 const initialState = {
-  error: null,
-  success: false,
+    error: null,
+    success: false,
 };
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button 
-        type="submit" 
-        className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:bg-emerald-400"
-        disabled={pending}
-    >
-        {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-        保存记录
-    </button>
-  );
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:bg-emerald-400"
+            disabled={pending}
+        >
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+            保存记录
+        </button>
+    );
 }
 
 export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialRecordFormProps) {
@@ -53,15 +53,6 @@ export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialReco
         }
     }, [state.success, onSuccess]);
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                <span className="ml-4 text-gray-600">正在加载表单数据...</span>
-            </div>
-        );
-    }
-
     if (error) {
         return (
             <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
@@ -74,11 +65,7 @@ export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialReco
         );
     }
 
-    if (!data) {
-        return null; // Should not happen if not loading and no error
-    }
-
-    const { recordCategoryTypes } = data;
+    const { recordCategoryTypes } = data || {};
 
     return (
         <form action={formAction} className="space-y-4 p-4">
@@ -108,10 +95,11 @@ export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialReco
                     name="recordTypeId"
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    disabled={isLoading}
                     defaultValue=""
                 >
                     <option value="" disabled>请选择财务类型</option>
-                    {recordCategoryTypes.map(type => (
+                    {recordCategoryTypes && recordCategoryTypes.map(type => (
                         <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                     ))}
                 </select>
@@ -142,9 +130,9 @@ export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialReco
 
             {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
-                <button 
-                    type="button" 
-                    onClick={onCancel} 
+                <button
+                    type="button"
+                    onClick={onCancel}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     取消

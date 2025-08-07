@@ -106,15 +106,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
         setRecords(newRecords);
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                <span className="ml-4 text-gray-600">正在加载表单数据...</span>
-            </div>
-        );
-    }
-
     if (error) {
         return (
             <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
@@ -127,11 +118,8 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
         );
     }
 
-    if (!data) {
-        return null; // Should not happen if not loading and no error
-    }
 
-    const { plots, activityTypes, recordCategoryTypes } = data;
+    const { plots, activityTypes, recordCategoryTypes } = data || {};
 
     return (
         <form action={formAction} className="space-y-4 p-4">
@@ -151,9 +139,10 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                     onChange={(e) => setActivityTypeId(e.target.value)}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    disabled={isLoading}
                 >
-                    <option value="">请选择活动类型</option>
-                    {activityTypes.map(type => (
+                    <option value="" disabled>请选择活动类型</option>
+                    {activityTypes && activityTypes.map(type => (
                         <option key={type.id} value={type.id}>{type.name}</option>
                     ))}
                 </select>
@@ -168,9 +157,10 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                     onChange={(e) => setPlotId(e.target.value)}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    disabled={isLoading}
                 >
-                    <option value="">请选择地块</option>
-                    {plots.map(plot => (
+                    <option value="" disabled>请选择地块</option>
+                    {plots && plots.map(plot => (
                         <option key={plot.id} value={plot.id}>{plot.name}</option>
                     ))}
                 </select>
@@ -261,9 +251,10 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                         onChange={(e) => handleRecordChange(index, 'recordTypeId', e.target.value)}
                                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                                         required
+                                        disabled={isLoading}
                                     >
                                         <option value="">请选择财务类型</option>
-                                        {recordCategoryTypes.map(type => (
+                                        {recordCategoryTypes && recordCategoryTypes.map(type => (
                                             <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                                         ))}
                                     </select>
