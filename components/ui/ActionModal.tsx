@@ -11,14 +11,11 @@ import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
 interface ActionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    activityTypes: ActivityType[];
-    plots: Plot[];
-    recordCategoryTypes: RecordCategoryType[];
 }
 
 type CurrentForm = 'select' | 'addActivity' | 'addFinancial' | 'addPlot';
 
-export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCategoryTypes }: ActionModalProps) {
+export function ActionModal({ isOpen, onClose }: ActionModalProps) {
     const [shouldRender, setShouldRender] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [currentForm, setCurrentForm] = useState<CurrentForm>('select');
@@ -118,9 +115,6 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
 
                 {currentForm === 'addActivity' && (
                     <AddActivityForm
-                        activityTypes={activityTypes}
-                        plots={plots}
-                        recordCategoryTypes={recordCategoryTypes}
                         onSuccess={handleFormSuccess}
                         onCancel={handleFormCancel}
                     />
@@ -128,7 +122,6 @@ export function ActionModal({ isOpen, onClose, activityTypes, plots, recordCateg
 
                 {currentForm === 'addFinancial' && (
                     <AddFinancialRecordForm
-                        recordCategoryTypes={recordCategoryTypes}
                         onSuccess={handleFormSuccess}
                         onCancel={handleFormCancel}
                     />

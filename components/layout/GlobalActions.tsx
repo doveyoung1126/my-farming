@@ -4,29 +4,27 @@
 import { useState } from 'react';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { ActionModal } from '@/components/ui/ActionModal';
-import { ActivityType, Plot, RecordCategoryType } from '@/lib/types';
+import { preload, useSWRConfig } from 'swr'
 
-interface GlobalActionsProps {
-  plots: Plot[];
-  activityTypes: ActivityType[];
-  recordCategoryTypes: RecordCategoryType[];
-}
-
-export function GlobalActions({ plots, activityTypes, recordCategoryTypes }: GlobalActionsProps) {
+export function GlobalActions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { fetcher } = useSWRConfig()
 
   return (
     <>
-      <FloatingActionButton 
-        onClick={() => setIsModalOpen(true)} 
-        aria-label="打开快捷操作"
+      <FloatingActionButton
+        onClick={() => {
+          setIsModalOpen(true)
+          if (fetcher) {
+            preload('/api/activities/form-data', fetcher)
+            preload('/api/records/form-data', fetcher)
+          }
+        }}
+        aria-label="快捷添加记录"
       />
-      <ActionModal 
-        isOpen={isModalOpen} 
+      <ActionModal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        plots={plots}
-        activityTypes={activityTypes}
-        recordCategoryTypes={recordCategoryTypes}
       />
     </>
   );

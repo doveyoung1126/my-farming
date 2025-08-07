@@ -1,38 +1,42 @@
-// components/features/records/forms/AddFinancialRecordForm.tsx
 'use client';
 
 import { useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import useSWR from 'swr';
 import { RecordCategoryType } from '@/lib/types';
 import { createFinancialRecordAction } from '@/lib/actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface AddFinancialRecordFormProps {
-    recordCategoryTypes: RecordCategoryType[];
     onSuccess: () => void;
     onCancel: () => void;
 }
 
+interface FormData {
+    recordCategoryTypes: RecordCategoryType[];
+}
+
 const initialState = {
-  error: null,
-  success: false,
+    error: null,
+    success: false,
 };
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button 
-        type="submit" 
-        className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
-        disabled={pending}
-    >
-        {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-        保存记录
-    </button>
-  );
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:bg-emerald-400"
+            disabled={pending}
+        >
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+            保存记录
+        </button>
+    );
 }
 
-export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCancel }: AddFinancialRecordFormProps) {
+export function AddFinancialRecordForm({ onSuccess, onCancel }: AddFinancialRecordFormProps) {
+    const { data, error, isLoading } = useSWR<FormData>('/api/records/form-data');
     const [state, formAction] = useActionState(createFinancialRecordAction, initialState);
 
     // --- 日期格式化辅助函数 ---
@@ -48,6 +52,20 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCance
             onSuccess();
         }
     }, [state.success, onSuccess]);
+
+    if (error) {
+        return (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center">
+                <AlertTriangle className="w-6 h-6 mr-3" />
+                <div>
+                    <p className="font-semibold">加载失败</p>
+                    <p className="text-sm">无法加载所需数据，请稍后重试。</p>
+                </div>
+            </div>
+        );
+    }
+
+    const { recordCategoryTypes } = data || {};
 
     return (
         <form action={formAction} className="space-y-4 p-4">
@@ -77,10 +95,11 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCance
                     name="recordTypeId"
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
                     required
+                    disabled={isLoading}
                     defaultValue=""
                 >
                     <option value="" disabled>请选择财务类型</option>
-                    {recordCategoryTypes.map(type => (
+                    {recordCategoryTypes && recordCategoryTypes.map(type => (
                         <option key={type.id} value={type.id}>{type.name} ({type.category === 'income' ? '收入' : '支出'})</option>
                     ))}
                 </select>
@@ -111,9 +130,9 @@ export function AddFinancialRecordForm({ recordCategoryTypes, onSuccess, onCance
 
             {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
-                <button 
-                    type="button" 
-                    onClick={onCancel} 
+                <button
+                    type="button"
+                    onClick={onCancel}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     取消

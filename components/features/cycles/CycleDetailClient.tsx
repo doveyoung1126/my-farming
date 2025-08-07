@@ -76,12 +76,8 @@ export function CycleDetailClient({ cycle, plots, recordCategoryTypes, activityT
                                         title="编辑农事活动"
                                     >
                                         <EditActivityForm
-                                            initialActivity={activityToEdit} // 传递完整的对象
-                                            activityTypes={activityTypes}
-                                            plots={plots}
-                                            recordCategoryTypes={recordCategoryTypes}
+                                            activityId={activityToEdit.id}
                                             onClose={onClose}
-                                            cycleBudget={cycle.budget}
                                         />
                                     </FormModal>
                                 )

@@ -1,6 +1,6 @@
 // components/reports/ActivitiesList.tsx
 import { ActivityInCycle } from '@/lib/types'; // 使用新的、精确的派生类型
-import { calculateFinancials } from '@/lib/data';
+import { calculateFinancials } from '@/lib/utils';
 import { CalendarDays, Crop, Leaf, ShoppingCart, Warehouse, Zap, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
