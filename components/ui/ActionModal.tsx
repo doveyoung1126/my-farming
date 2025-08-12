@@ -77,6 +77,9 @@ export function ActionModal({ isOpen, onClose }: ActionModalProps) {
                     ${isVisible ? 'translate-y-0' : 'translate-y-full'}
                 `}
                 onClick={(e) => e.stopPropagation()}
+                onScrollCapture={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
+
             >
                 <div className="flex justify-between items-center mb-4">
                     {currentForm !== 'select' && (
