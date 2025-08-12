@@ -2,11 +2,22 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/db'; // 直接使用 prisma，不再依赖 fetch
+import { getRecordCategoryTypes } from '@/lib/data'
 
 // --- Helper Function ---
 function getApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 }
+
+// --- Fix Amount Input ---
+const recordCategoryTypes = await getRecordCategoryTypes()
+
+const fixedAmount = (recordTypeId: number, amount: number) => {
+  const recordCategory = recordCategoryTypes.find((rt) => rt.id === recordTypeId)?.category
+  if (!recordCategory) return
+  return recordCategory === 'income' ? Math.abs(amount) : -Math.abs(amount)
+}
+
 
 // ------------------------
 // PLOT ACTIONS
@@ -98,7 +109,7 @@ export async function createActivityAction(previousState: any, formData: FormDat
     budget: formData.get('budget') ? parseFloat(formData.get('budget') as string) : null,
     records: recordsData.map(r => ({
       ...r,
-      amount: parseFloat(r.amount),
+      amount: fixedAmount(r.recordTypeId, r.amount),
       recordTypeId: parseInt(r.recordTypeId),
     })),
   };
@@ -140,7 +151,7 @@ export async function updateActivityAction(activityId: number, formData: FormDat
     crop: formData.get('crop') as string || null,
     records: recordsData.map(r => ({
       id: r.id ? parseInt(r.id) : undefined,
-      amount: parseFloat(r.amount),
+      amount: fixedAmount(r.recordTypeId, r.amount),
       recordTypeId: parseInt(r.recordTypeId),
       description: r.description,
       date: new Date(r.date),
@@ -180,9 +191,12 @@ export async function updateActivityAction(activityId: number, formData: FormDat
 // (暂时保留，以防有独立于活动的财务记录)
 
 export async function createFinancialRecordAction(previousState: any, formData: FormData) {
+  const amount = parseFloat(formData.get('amount') as string)
+  const recordTypeId = parseInt(formData.get('recordTypeId') as string)
+
   const payload = {
-    amount: parseFloat(formData.get('amount') as string),
-    recordTypeId: parseInt(formData.get('recordTypeId') as string),
+    amount: fixedAmount(recordTypeId, amount) as number,
+    recordTypeId: recordTypeId,
     date: new Date(formData.get('date') as string),
     description: formData.get('description') as string || null,
   };
@@ -219,10 +233,13 @@ export async function updateFinancialRecordAction(formData: FormData) {
     return { error: '财务记录 ID 缺失，无法更新。' };
   }
 
+  const amount = parseFloat(formData.get('amount') as string)
+  const recordTypeId = parseInt(formData.get('recordTypeId') as string)
+
   const payload = {
     date: new Date(formData.get('isoDate') as string),
-    amount: parseFloat(formData.get('amount') as string),
-    recordTypeId: parseInt(formData.get('recordTypeId') as string),
+    amount: fixedAmount(recordTypeId, amount),
+    recordTypeId: recordTypeId,
     description: formData.get('description') as string,
   };
 

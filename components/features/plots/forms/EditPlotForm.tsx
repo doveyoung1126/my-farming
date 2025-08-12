@@ -79,9 +79,10 @@ export function EditPlotForm({ plot, onClose }: EditPlotFormProps) {
                 <label htmlFor="area" className="block text-sm font-medium text-gray-700">面积 (亩) <span className="text-red-500">*</span></label>
                 <input
                     type="number"
+                    inputMode='decimal'
                     id="area"
                     name="area"
-                    defaultValue={plot.area.toString()} // 注意：Server Action 中字段名为 size
+                    defaultValue={plot.area.toString()}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     step="0.1"
                     required

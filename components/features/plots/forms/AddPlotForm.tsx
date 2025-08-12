@@ -12,15 +12,15 @@ interface AddPlotFormProps {
 }
 
 const initialState = {
-  error: null,
-  success: false,
+    error: null,
+    success: false,
 };
 
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <button 
-            type="submit" 
+        <button
+            type="submit"
             className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
             disabled={pending}
         >
@@ -59,6 +59,7 @@ export function AddPlotForm({ onSuccess, onCancel }: AddPlotFormProps) {
                 <label htmlFor="area" className="block text-sm font-medium text-gray-700">面积 (亩) <span className="text-red-500">*</span></label>
                 <input
                     type="number"
+                    inputMode='decimal'
                     id="area"
                     name="area"
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -81,9 +82,9 @@ export function AddPlotForm({ onSuccess, onCancel }: AddPlotFormProps) {
 
             {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
-                <button 
-                    type="button" 
-                    onClick={onCancel} 
+                <button
+                    type="button"
+                    onClick={onCancel}
                     className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     取消

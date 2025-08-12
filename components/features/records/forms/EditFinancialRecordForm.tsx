@@ -85,11 +85,12 @@ export function EditFinancialRecordForm({
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
                 <input
                     type="number"
+                    inputMode='decimal'
                     id="amount"
                     name="amount"
                     defaultValue={record.amount.toString()}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                    placeholder="例如：-50.00 (支出) 或 100.00 (收入)"
+                    placeholder="例如： 50.00"
                     step="0.01"
                     required
                 />

@@ -232,12 +232,13 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                     <label htmlFor={`amount-${index}`} className="block text-xs font-medium text-gray-700">金额 <span className="text-red-500">*</span></label>
                                     <input
                                         type="number"
+                                        inputMode="decimal"
                                         id={`amount-${index}`}
                                         name={`records[${index}][amount]`}
-                                        value={record.amount}
+                                        value={Math.abs(Number(record.amount)) || ''}
                                         onChange={(e) => handleRecordChange(index, 'amount', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                        placeholder="例如：-50.00 (支出) 或 100.00 (收入)"
+                                        placeholder="例如： 50.00 "
                                         step="0.01"
                                         required
                                     />
