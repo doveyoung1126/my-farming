@@ -11,7 +11,7 @@ const activityTypes = [
   { name: '浇水', cycleMarker: null },
   { name: '除草', cycleMarker: null },
   { name: '喷药', cycleMarker: null },
-  { name: '整地', cycleMarker: null },
+  { name: '整地', cycleMarker: CycleMarker.START },
 ];
 
 const recordCategoryTypes = [
@@ -33,7 +33,7 @@ async function main() {
   for (const type of activityTypes) {
     await prisma.activityType.upsert({
       where: { name: type.name },
-      update: {}, // No fields to update if it exists
+      update: { cycleMarker: type.cycleMarker }, // Update cycleMarker
       create: {
         name: type.name,
         cycleMarker: type.cycleMarker,

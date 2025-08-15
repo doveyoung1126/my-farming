@@ -47,7 +47,7 @@ async function main() {
     { name: '浇水', cycleMarker: null },
     { name: '除草', cycleMarker: null },
     { name: '喷药', cycleMarker: null },
-    { name: '整地', cycleMarker: null },
+    { name: '整地', cycleMarker: CycleMarker.START },
   ];
   const recordCategoriesData = [
     { name: '种子', category: RecordCategory.expense },
@@ -66,11 +66,11 @@ async function main() {
 
   const activityTypes = await prisma.activityType.findMany();
   const recordCategoryTypes = await prisma.recordCategoryType.findMany();
-  
+
   const sowType = activityTypes.find(t => t.name === '播种')!;
   const harvestType = activityTypes.find(t => t.name === '采收')!;
   const otherActivityTypes = activityTypes.filter(t => t.cycleMarker === null);
-  
+
   const expenseCategories = recordCategoryTypes.filter(t => t.category === 'expense');
   const incomeCategories = recordCategoryTypes.filter(t => t.category === 'income');
 
@@ -112,11 +112,11 @@ async function main() {
       // Add activities for the completed cycle
       const startActivity = await createActivity(plot.id, sowType.id, cycle.id, crop, cycleStartDate, [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(200, 500) }]);
       const endActivity = await createActivity(plot.id, harvestType.id, cycle.id, crop, cycleEndDate, [{ typeId: getRandomElement(incomeCategories).id, amount: getRandomInt(3000, 8000) }]);
-      
+
       for (let j = 0; j < getRandomInt(5, 15); j++) {
         await createActivity(plot.id, getRandomElement(otherActivityTypes).id, cycle.id, crop, getRandomDate(cycleStartDate, cycleEndDate), [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(50, 200) }]);
       }
-      
+
       await prisma.cycle.update({ where: { id: cycle.id }, data: { startActivityId: startActivity.id, endActivityId: endActivity.id } });
     }
 
@@ -124,7 +124,7 @@ async function main() {
     if (!plot.isArchived) {
       const crop = getRandomElement(CROP_NAMES);
       const cycleStartDate = subDays(new Date(), getRandomInt(15, 45));
-      
+
       const cycle = await prisma.cycle.create({
         data: {
           plotId: plot.id,
@@ -134,7 +134,7 @@ async function main() {
           status: 'ongoing',
         },
       });
-      
+
       await prisma.plot.update({ where: { id: plot.id }, data: { crop } });
 
       const startActivity = await createActivity(plot.id, sowType.id, cycle.id, crop, cycleStartDate, [{ typeId: getRandomElement(expenseCategories).id, amount: -getRandomInt(200, 500) }]);

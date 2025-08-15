@@ -48,7 +48,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
     const { data, error, isLoading } = useSWR<FormData>('/api/activities/form-data');
     const [state, formAction] = useActionState(createActivityAction, initialState);
 
-    // --- 日期格式化辅助函数 ---
     function formatDateForInput(date: Date): string {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -62,9 +61,11 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
     const [date, setDate] = useState(formatDateForInput(new Date()));
     const [records, setRecords] = useState<FinancialRecordForm[]>([]);
     const [showFinancials, setShowFinancials] = useState(false);
+    const [startNewCycle, setStartNewCycle] = useState(false);
 
+    const selectedPlot = data?.plots.find(p => p.id === parseInt(plotId));
     const selectedActivityType = data?.activityTypes.find(type => type.id === parseInt(activityTypeId));
-    const showBudgetField = selectedActivityType?.cycleMarker === 'START';
+    const canStartNewCycle = !!selectedPlot && !selectedPlot.crop;
 
     useEffect(() => {
         if (state.success) {
@@ -74,23 +75,45 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
 
     useEffect(() => {
         if (plotId && data?.plots) {
-            const selectedPlot = data.plots.find(p => p.id === parseInt(plotId));
-            setCrop(selectedPlot?.crop || '');
+            const plot = data.plots.find(p => p.id === parseInt(plotId));
+            setCrop(plot?.crop || '');
         } else {
             setCrop('');
         }
     }, [plotId, data?.plots]);
 
     useEffect(() => {
-        // When hiding the financial section, clear the records
         if (!showFinancials) {
             setRecords([]);
         } else if (records.length === 0) {
-            // When showing it for the first time, add one default record
             setRecords([{ amount: '', recordTypeId: '', description: '', date: date }]);
         }
     }, [showFinancials, date]);
 
+    const handleActivityTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newActivityTypeId = e.target.value;
+        setActivityTypeId(newActivityTypeId);
+
+        const activityType = data?.activityTypes.find(type => type.id === parseInt(newActivityTypeId));
+        if (canStartNewCycle && activityType) {
+            setStartNewCycle(activityType.cycleMarker === 'START');
+        } else {
+            setStartNewCycle(false);
+        }
+    };
+
+    const handleStartCycleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const isChecking = e.target.checked;
+        if (isChecking && selectedActivityType?.cycleMarker !== 'START') {
+            const confirmation = window.confirm(
+                `通常一个生产周期以“播种”或“整地”开始。\n\n您确定要以“${selectedActivityType?.name}”作为新周期的第一个活动吗？`
+            );
+            if (!confirmation) {
+                return;
+            }
+        }
+        setStartNewCycle(isChecking);
+    };
 
     const handleAddRecord = () => {
         setRecords([...records, { amount: '', recordTypeId: '', description: '', date: date }]);
@@ -118,35 +141,16 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
         );
     }
 
-
     const { plots, activityTypes, recordCategoryTypes } = data || {};
 
     return (
         <form action={formAction} className="space-y-4 p-4">
+            <input type="hidden" name="records" value={JSON.stringify(records)} />
             {state.error && (
                 <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
                     <p>{state.error}</p>
                 </div>
             )}
-
-            {/* 活动基本信息 */}
-            <div>
-                <label htmlFor="activityTypeId" className="block text-sm font-medium text-gray-700">活动类型 <span className="text-red-500">*</span></label>
-                <select
-                    id="activityTypeId"
-                    name="activityTypeId"
-                    value={activityTypeId}
-                    onChange={(e) => setActivityTypeId(e.target.value)}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
-                    required
-                    disabled={isLoading}
-                >
-                    <option value="" disabled>请选择活动类型</option>
-                    {activityTypes && activityTypes.map(type => (
-                        <option key={type.id} value={type.id}>{type.name}</option>
-                    ))}
-                </select>
-            </div>
 
             <div>
                 <label htmlFor="plotId" className="block text-sm font-medium text-gray-700">地块 <span className="text-red-500">*</span></label>
@@ -165,6 +169,40 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                     ))}
                 </select>
             </div>
+
+            <div>
+                <label htmlFor="activityTypeId" className="block text-sm font-medium text-gray-700">活动类型 <span className="text-red-500">*</span></label>
+                <select
+                    id="activityTypeId"
+                    name="activityTypeId"
+                    value={activityTypeId}
+                    onChange={handleActivityTypeChange}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
+                    required
+                    disabled={isLoading}
+                >
+                    <option value="" disabled>请选择活动类型</option>
+                    {activityTypes && activityTypes.map(type => (
+                        <option key={type.id} value={type.id}>{type.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            {canStartNewCycle && activityTypeId && (
+                <div className="p-3 my-2 bg-sky-50 border border-sky-200 rounded-md">
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="startNewCycle"
+                            name="startNewCycle"
+                            checked={startNewCycle}
+                            onChange={handleStartCycleChange}
+                            className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                        />
+                        <label htmlFor="startNewCycle" className="ml-2 text-sm font-medium text-gray-900">将此活动作为新生产周期的开始</label>
+                    </div>
+                </div>
+            )}
 
             <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700">日期 <span className="text-red-500">*</span></label>
@@ -189,12 +227,13 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                     onChange={(e) => setCrop(e.target.value)}
                     className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     placeholder="例如：西红柿"
+                    readOnly={!canStartNewCycle && !!selectedPlot?.crop}
                 />
             </div>
 
-            {showBudgetField && (
+            {startNewCycle && (
                 <div>
-                    <label htmlFor="budget" className="block text-sm font-medium text-gray-700">预算 (可选，仅周期开始活动)</label>
+                    <label htmlFor="budget" className="block text-sm font-medium text-gray-700">预算 (可选)</label>
                     <input
                         type="number"
                         id="budget"
@@ -206,7 +245,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                 </div>
             )}
 
-            {/* 关联财务记录 */}
             <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center mb-3">
                     <input
@@ -234,7 +272,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                         type="number"
                                         inputMode="decimal"
                                         id={`amount-${index}`}
-                                        name={`records[${index}][amount]`}
                                         value={Math.abs(Number(record.amount)) || ''}
                                         onChange={(e) => handleRecordChange(index, 'amount', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -247,7 +284,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                     <label htmlFor={`recordType-${index}`} className="block text-xs font-medium text-gray-700">财务类型 <span className="text-red-500">*</span></label>
                                     <select
                                         id={`recordType-${index}`}
-                                        name={`records[${index}][recordTypeId]`}
                                         value={record.recordTypeId}
                                         onChange={(e) => handleRecordChange(index, 'recordTypeId', e.target.value)}
                                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
@@ -265,7 +301,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                     <input
                                         type="text"
                                         id={`description-${index}`}
-                                        name={`records[${index}][description]`}
                                         value={record.description}
                                         onChange={(e) => handleRecordChange(index, 'description', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -277,7 +312,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                                     <input
                                         type="date"
                                         id={`recordDate-${index}`}
-                                        name={`records[${index}][date]`}
                                         value={record.date}
                                         onChange={(e) => handleRecordChange(index, 'date', e.target.value)}
                                         className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -292,7 +326,6 @@ export function AddActivityForm({ onSuccess, onCancel }: AddActivityFormProps) {
                 )}
             </div>
 
-            {/* 提交按钮 */}
             <div className="flex justify-end space-x-3 pt-4">
                 <button
                     type="button"

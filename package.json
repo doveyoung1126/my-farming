@@ -1,6 +1,6 @@
 {
   "name": "my-farming",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "prisma": {
     "seed": "tsx prisma/seed.ts"

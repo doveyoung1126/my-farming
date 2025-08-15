@@ -97,44 +97,42 @@ export async function updatePlotAction(formData: FormData) {
 // ACTIVITY ACTIONS
 // ------------------------
 
+import { createActivityInCycle } from '@/lib/services/activityService';
+
 export async function createActivityAction(previousState: any, formData: FormData) {
-  const plotId = formData.get('plotId') as string;
+  const plotId = parseInt(formData.get('plotId') as string);
   const recordsData: any[] = JSON.parse(formData.get('records') as string || '[]');
 
-  const payload = {
+  const activityData = {
     activityTypeId: parseInt(formData.get('activityTypeId') as string),
     date: new Date(formData.get('date') as string),
-    plotId: parseInt(plotId),
+    plotId: plotId,
     crop: formData.get('crop') as string || null,
     budget: formData.get('budget') ? parseFloat(formData.get('budget') as string) : null,
     records: recordsData.map(r => ({
       ...r,
-      amount: fixedAmount(r.recordTypeId, r.amount),
+      date: new Date(r.date),
+      amount: fixedAmount(parseInt(r.recordTypeId), r.amount),
       recordTypeId: parseInt(r.recordTypeId),
     })),
   };
 
-  if (!payload.activityTypeId || !payload.plotId || !payload.date) {
-    return { success: false, error: '请填写所有必填的农事活动字段。' };
-  }
+  const startNewCycle = formData.get('startNewCycle') === 'on';
+  const endCurrentCycle = formData.get('endCurrentCycle') === 'on';
 
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/activities`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    await createActivityInCycle({
+      activityData,
+      startNewCycle,
+      endCurrentCycle,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '创建农事活动失败。');
-    }
 
     revalidatePath('/reports');
     revalidatePath('/newdashboard');
-    revalidatePath(`/plots/${payload.plotId}`);
+    revalidatePath(`/plots/${plotId}`);
 
     return { success: true, error: null };
+
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -151,7 +149,7 @@ export async function updateActivityAction(activityId: number, formData: FormDat
     crop: formData.get('crop') as string || null,
     records: recordsData.map(r => ({
       id: r.id ? parseInt(r.id) : undefined,
-      amount: fixedAmount(r.recordTypeId, r.amount),
+      amount: fixedAmount(parseInt(r.recordTypeId), r.amount),
       recordTypeId: parseInt(r.recordTypeId),
       description: r.description,
       date: new Date(r.date),
