@@ -36,22 +36,19 @@ export async function createPlotAction(previousState: any, formData: FormData) {
   }
 
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/plots`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    await prisma.plot.create({
+      data: payload,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || '添加地块失败');
-    }
 
     revalidatePath('/plots');
 
     return { success: true, error: null };
 
   } catch (error: any) {
+    // 专门处理 Prisma 的唯一约束冲突错误
+    if (error.code === 'P2002') {
+      return { success: false, error: '地块名称已存在，请使用其他名称。' };
+    }
     return { success: false, error: error.message };
   }
 }
