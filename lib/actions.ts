@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/db'; // 直接使用 prisma，不再依赖 fetch
 import { getRecordCategoryTypes } from '@/lib/data'
+import {RecordCategoryType} from '@/lib/types'
 
 // --- Helper Function ---
 function getApiBaseUrl() {
@@ -10,9 +11,9 @@ function getApiBaseUrl() {
 }
 
 // --- Fix Amount Input ---
-const recordCategoryTypes = await getRecordCategoryTypes()
+// const recordCategoryTypes = await getRecordCategoryTypes()
 
-const fixedAmount = (recordTypeId: number, amount: number) => {
+const fixedAmount = (recordTypeId: number, amount: number,recordCategoryTypes: RecordCategoryType[]) => {
   const recordCategory = recordCategoryTypes.find((rt) => rt.id === recordTypeId)?.category
   if (!recordCategory) return
   return recordCategory === 'income' ? Math.abs(amount) : -Math.abs(amount)
@@ -102,6 +103,7 @@ import { createActivityInCycle } from '@/lib/services/activityService';
 export async function createActivityAction(previousState: any, formData: FormData) {
   const plotId = parseInt(formData.get('plotId') as string);
   const recordsData: any[] = JSON.parse(formData.get('records') as string || '[]');
+  const recordCategoryTypes = await getRecordCategoryTypes()
 
   const activityData = {
     activityTypeId: parseInt(formData.get('activityTypeId') as string),
@@ -112,7 +114,7 @@ export async function createActivityAction(previousState: any, formData: FormDat
     records: recordsData.map(r => ({
       ...r,
       date: new Date(r.date),
-      amount: fixedAmount(parseInt(r.recordTypeId), r.amount),
+      amount: fixedAmount(parseInt(r.recordTypeId), r.amount,recordCategoryTypes),
       recordTypeId: parseInt(r.recordTypeId),
     })),
   };
@@ -142,6 +144,7 @@ export async function updateActivityAction(activityId: number, formData: FormDat
   const plotId = formData.get('plotId') as string;
   const recordsData: any[] = JSON.parse(formData.get('records') as string || '[]');
   const recordIdsToDelete: number[] = JSON.parse(formData.get('recordIdsToDelete') as string || '[]');
+  const recordCategoryTypes = await getRecordCategoryTypes()
 
   const payload = {
     activityTypeId: parseInt(formData.get('activityTypeId') as string),
@@ -149,7 +152,7 @@ export async function updateActivityAction(activityId: number, formData: FormDat
     crop: formData.get('crop') as string || null,
     records: recordsData.map(r => ({
       id: r.id ? parseInt(r.id) : undefined,
-      amount: fixedAmount(parseInt(r.recordTypeId), r.amount),
+      amount: fixedAmount(parseInt(r.recordTypeId), r.amount,recordCategoryTypes),
       recordTypeId: parseInt(r.recordTypeId),
       description: r.description,
       date: new Date(r.date),
@@ -191,15 +194,16 @@ export async function updateActivityAction(activityId: number, formData: FormDat
 export async function createFinancialRecordAction(previousState: any, formData: FormData) {
   const amount = parseFloat(formData.get('amount') as string)
   const recordTypeId = parseInt(formData.get('recordTypeId') as string)
-
+  const recordCategoryTypes = await getRecordCategoryTypes()
+  
   const payload = {
-    amount: fixedAmount(recordTypeId, amount) as number,
+    amount: fixedAmount(recordTypeId, amount,recordCategoryTypes),
     recordTypeId: recordTypeId,
     date: new Date(formData.get('date') as string),
     description: formData.get('description') as string || null,
   };
 
-  if (isNaN(payload.amount) || !payload.recordTypeId || !payload.date) {
+  if (!payload.amount || isNaN(payload.amount) || !payload.recordTypeId || !payload.date) {
     return { success: false, error: '请填写所有必填字段并确保格式正确。' };
   }
 
@@ -233,10 +237,11 @@ export async function updateFinancialRecordAction(formData: FormData) {
 
   const amount = parseFloat(formData.get('amount') as string)
   const recordTypeId = parseInt(formData.get('recordTypeId') as string)
+  const recordCategoryTypes = await getRecordCategoryTypes()
 
   const payload = {
     date: new Date(formData.get('isoDate') as string),
-    amount: fixedAmount(recordTypeId, amount),
+    amount: fixedAmount(recordTypeId, amount,recordCategoryTypes),
     recordTypeId: recordTypeId,
     description: formData.get('description') as string,
   };
